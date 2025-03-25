@@ -34,7 +34,7 @@ func (r *RateLimiter) Allow(ip string) bool{
 }
 
 
-func (r *RateLimiter) Release(ip   string) {
+func (r *RateLimiter) Release(ip  string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
