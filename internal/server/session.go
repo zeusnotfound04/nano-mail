@@ -147,7 +147,7 @@ func (s *smtpSession) handleRcptTo(params string){
 	addr := strings.TrimSpace(params[3:])
 	addr = strings.Trim(addr , "<>")
 
-	if add == "" {
+	if addr	 == "" {
 		s.writeResponse("501 Empty recipient address\r\n")
 		return
 	}
@@ -178,4 +178,16 @@ func (s *smtpSession) handleData()  {
 	s.message.Reset()
 
 	logger.Info("Date phase started")
+}
+
+
+func(s *smtpSession) handleReset() {
+	s.state = stateHelo
+	s.sender = ""
+	s.recipients = nil
+	s.message.Reset()
+	s.headers = make(map[string][]string)
+
+	s.writeResponse("250 OK\r\n")
+	s.server.config.Logger.Info("Session reset", "client" , s.remoteAddr)
 }
