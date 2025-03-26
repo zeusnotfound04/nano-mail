@@ -73,7 +73,7 @@ func (s *smtpSession) handleHelo(cmd string, params string) {
 		res := fmt.Sprintf("250-%s\r\n" , s.server.config.Domain)
 
 		s.writeResponse(res)
-			
+
 		capabilities := []string{
 			"250-SIZE" + fmt.Sprintf("%d", s.server.config.MaxMessageSize),
 			"250-8BITMIME",
@@ -92,3 +92,37 @@ func (s *smtpSession) handleHelo(cmd string, params string) {
 	}
 	logger.Info("Client identified" , "command" , cmd , "hostname" , params)
 }
+
+
+func (s *smtpSession) handleMailFrom(params string) {
+	logger := s.server.config.Logger.With("client" , s.remoteAddr)
+
+	if s.state < stateHelo {
+		s.writeResponse("503 Bad sequence in parameters\r\n")
+		return
+	}
+
+	addr := strings.TrimSpace(params[5:])
+	addr = strings.Trim(addr , "<>")
+
+	if addr == "" {
+		s.writeResponse("501 Invalid sender address format\r\n")
+		return
+	}
+
+	if !strings.Contains(addr , "@") {
+		s.writeResponse("501 Invalid sender address format\r\n")
+		return
+	}
+
+	s.sender = addr
+	s.state = stateMailFrom 
+	s.recipients = nil
+	s.message.Reset()
+
+	s.writeResponse("250 OK\r\n")
+	logger.Info("Mail from", "sender" , addr)
+	
+}
+
+
