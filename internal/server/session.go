@@ -134,7 +134,7 @@ func (s *smtpSession) handleRcptTo(params string){
 		return
 	}
 
-	if !strings.HasPrefix(strings.ToUpper(params) , "TO:" {
+	if !strings.HasPrefix(strings.ToUpper(params) , "TO:") {
 		s.writeResponse("501 Syntax error in parameters\r\n")
 		return
 	}
@@ -165,4 +165,17 @@ func (s *smtpSession) handleRcptTo(params string){
 }
 
 
+func (s *smtpSession) handleData()  {
+	logger := s.server.config.Logger.With("client", s.remoteAddr)
 
+	if s.state < stateRcptTo {
+		s.writeResponse("503 Bad sequence of commands\r\n")
+		return
+	}
+
+	s.writeResponse("354 Start mail input; end with <CRLF>.<CRLF>\r\n")
+	s.state = stateData
+	s.message.Reset()
+
+	logger.Info("Date phase started")
+}
