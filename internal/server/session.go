@@ -5,9 +5,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net"
+	"net/mail"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/zeusnotfound04/nano-mail/internal/config"
 	"github.com/zeusnotfound04/nano-mail/internal/limiter"
@@ -190,4 +193,82 @@ func(s *smtpSession) handleReset() {
 
 	s.writeResponse("250 OK\r\n")
 	s.server.config.Logger.Info("Session reset", "client" , s.remoteAddr)
+}
+
+
+func (s *smtpSession) processMessage() error{
+	logger := s.server.config.Logger.With(
+		"client" , s.remoteAddr,
+		"from", s.sender,
+		"recipients" , strings.Join(s.recipients , ","),
+	)
+
+	msg , err := mail.ReadMessage(&s.message)
+	if err != nil {
+		logger.Error("Failed to parse message" , "error" , err)
+		return err
+	}
+
+	headers := msg.Header
+
+	bodyBytes , err := io.ReadAll(msg.Body)
+	if err != nil {
+		logger.Error("Failed to read message body" , "error" , err)
+		return err
+	}
+
+
+	message := &Message{
+		From :   s.sender,
+		To:      s.recipients,
+		Subject:  headers.Get("Subject"),
+		Headers: headers,
+		Body :     string(bodyBytes),
+		Size :   int64(s.message.Len()),
+		Date:     time.Now(),
+	}
+	
+	ctx, cancel := context.WithTimeout(s.ctx , 10*time.Second)
+	defer cancel()
+
+	err= s.server.config.StorageBackend.Store(ctx, message)
+	if err != nil {
+		logger.Error("Failed to store message", "error" , err)
+		return err
+	}
+
+	logger.Info("Message processed successfully",
+			"size" , message.Size ,
+			"subject" , message.Subject
+	)
+	return nil
+}
+
+func (s *smtpSession) process(){
+	logger := s.server.config.Logger.With("client" , s.remoteAddr)
+
+	for {
+		s.conn.SetReadDeadline(time.Now().Add(s.server.config.ReadTimeout))
+		s.conn.SetWriteDeadline(time.Now().Add(s.server.config.WriteTimeout))
+
+		line , err := s.reader.ReadString('\n')
+		if err != nil {
+			if err != io.EOF {
+				logger.Error("Failed to read command" , "error" , err)
+			}
+			return
+		}
+
+	
+		line = strings.TrimSpace(line)
+		logger.Debug("Received command" , "command" , line)
+
+		if s.state == stateData {
+			if line == "." {
+				err := s.processMessage()
+			}
+		}
+	}
+
+
 }
