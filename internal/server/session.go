@@ -126,3 +126,43 @@ func (s *smtpSession) handleMailFrom(params string) {
 }
 
 
+func (s *smtpSession) handleRcptTo(params string){
+	logger := s.server.config.Logger.With("client" , s.remoteAddr)
+
+	if s.state < stateMailFrom {
+		s.writeResponse("503 Bad sequence of commands\r\n")
+		return
+	}
+
+	if !strings.HasPrefix(strings.ToUpper(params) , "TO:" {
+		s.writeResponse("501 Syntax error in parameters\r\n")
+		return
+	}
+
+	if len(s.recipients) >= s.server.config.MaxRecipients {
+		s.writeResponse("452 Too many recipients\r\n")
+		return
+	}
+
+	addr := strings.TrimSpace(params[3:])
+	addr = strings.Trim(addr , "<>")
+
+	if add == "" {
+		s.writeResponse("501 Empty recipient address\r\n")
+		return
+	}
+
+	if !strings.Contains(addr , "@") {
+		s.writeResponse("501 Invalid recipient address format\r\n")
+		return
+	}
+
+	s.recipients = append(s.recipients, addr)
+	s.state = stateRcptTo
+
+	s.writeResponse("250 OK\r\n")
+	logger.Info("Recipient added", "recipient" , addr)
+}
+
+
+
