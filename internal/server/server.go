@@ -1,13 +1,14 @@
 package server
 
 import (
+	"bufio"
+	"context"
 	"fmt"
 	"net"
 	"sync"
 
 	"github.com/zeusnotfound04/nano-mail/internal/config"
 	"github.com/zeusnotfound04/nano-mail/internal/limiter"
-	"golang.org/x/tools/go/analysis/passes/defers"
 )
 
 type Server struct {
@@ -25,13 +26,11 @@ func NewServer(cfg *config.Config) *Server {
 
 	var connectionLimiter limiter.ConnectionLimiter
 	
-	// Use default max connections per IP if not specified
-	maxPerIP := 10 // You can adjust this default value
+	maxPerIP := 10 
 	if cfg.ConnectionPerIP > 0 {
 		maxPerIP = cfg.ConnectionPerIP
 	}
 	
-	// Create a new rate limiter with the specified or default max connections
 	connectionLimiter = limiter.NewRateLimiter(maxPerIP)
 
 	return &Server{
@@ -57,11 +56,13 @@ func (s *Server) Start() error {
 		"domain" , s.config.Domain)
 	
 	s.wg.Add(1)
-	go s.
+	go s.acceptConnections()
+
+	return nil
 }
 
 
-func (s *Server) acceptConnection() {
+func (s *Server) acceptConnections() {
 	defer s.wg.Done()
 
 	for {
@@ -71,24 +72,48 @@ func (s *Server) acceptConnection() {
 		default:
 			conn, err := s.listener.Accept()
 			if err != nil {
-				s.config.Logger.Error("Error  accepting connection" , "error" , err)
+				s.config.Logger.Error("Error accepting connection", "error", err)
 				return
 			}
 
-			remoteIP, _, _ := net.SplitHostPort(conn.RemoteAddr().Network().String())
+			remoteIP, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
 			if !s.rateLimiter.Allow(remoteIP) {
-				s.config.Logger.Warn("Connection rate Limit exceeded", "ip" , remoteIP)
-				conn.Write([]byte("421 Too Many Connections from your IP\r\n"))
+				s.config.Logger.Warn("Connection rate limit exceeded", "ip", remoteIP)
+				conn.Write([]byte("421 Too many connections from your IP\r\n"))
 				conn.Close()
 				continue
 			}
 
 			s.wg.Add(1)
-			go func(c net.Conn , ip string) {
+			go func(c net.Conn, ip string) {
 				defer s.wg.Done()
 				defer s.rateLimiter.Release(ip)
 				s.handleConnection(c)
-			}(conn , remoteIP)
+			}(conn, remoteIP)
 		}
 	}
+}
+
+
+func (s *Server) handleConnection(conn net.Conn){
+	defer conn.Close()
+
+	session := &smtpSession{
+		server:  s,
+		conn: conn,
+		reader: bufio.NewReader(conn),
+		writer: bufio.NewWriter(conn),
+		state: stateInit,
+		recipients: make([]string, 0, s.config.MaxRecipients),
+		remoteAddr: conn.RemoteAddr().String(),
+		ctx: context.Background(),
+	}
+
+	greeting := fmt.Sprintf("200 %s ESMTP ready\r\n", s.config.Domain)
+	if err :=session.writeResponse(greeting); err != nil {
+		s.config.Logger.Error("Failed to send greeting" , "error" , err , "client" , session.remoteAddr)
+		return
+	}
+
+	session.process()
 }
