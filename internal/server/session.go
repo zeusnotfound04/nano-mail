@@ -14,6 +14,7 @@ import (
 
 	"github.com/zeusnotfound04/nano-mail/internal/config"
 	"github.com/zeusnotfound04/nano-mail/internal/limiter"
+	
 )
 
 const (
@@ -196,7 +197,7 @@ func(s *smtpSession) handleReset() {
 }
 
 
-func (s *smtpSession) processMessage() error{
+func (s *smtpSession) processMessageData() error{
 	logger := s.server.config.Logger.With(
 		"client" , s.remoteAddr,
 		"from", s.sender,
@@ -239,7 +240,7 @@ func (s *smtpSession) processMessage() error{
 
 	logger.Info("Message processed successfully",
 			"size" , message.Size ,
-			"subject" , message.Subject
+			"subject" , message.Subject,
 	)
 	return nil
 }
@@ -265,9 +266,66 @@ func (s *smtpSession) process(){
 
 		if s.state == stateData {
 			if line == "." {
-				err := s.processMessage()
+				err := s.processMessageData()
+				if err != nil {
+					logger.Error("Failed to process message data" , "error" , err)
+					s.writeResponse("554 Transaction failed\r\n" )
+					continue
+				}
+
+				s.state = stateHelo
+				s.writeResponse("250 OK: message accepted\r\n")
+				continue
+				
 			}
+
+			if strings.HasPrefix(line , "..") {
+				line = line[1:]
+			}
+
+			s.message.WriteString(line + "\r\n")
+
+			if s.message.Len() > int(s.server.config.MaxMessageSize) {
+				logger.Warn("Message size limit exceeded" , "size" , s.message.Len())
+				s.writeResponse("552 Message size exceeds fixed limit\r\n")
+				s.message.Reset()
+				s.state = stateHelo
+				continue
+			}
+
+			continue
+
 		}
+
+		parts := strings.SplitN(line , " " , 2)
+		cmd := strings.ToUpper(parts[0])
+		var params string
+		if len(parts) > 1 {
+			params = parts[1]
+		}
+
+
+		switch cmd {
+		case "HELO" , "EHLO":
+			s.handleHelo(cmd , params)
+		case "MAIL":
+			s.handleMailFrom(params)
+		case "RCPT":
+			s.handleRcptTo(params)
+		case "DATA":
+			s.handleData()
+		case "RSET":
+			s.handleReset()
+		case "NOOP":
+			s.writeResponse("250 OK\r\n")
+		case "QUIT":
+			s.writeResponse("221 Goodbye\r\n")
+			return
+		default:
+			s.writeResponse("502 Command not implemented\r\n")
+		}
+
+
 	}
 
 
