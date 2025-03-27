@@ -117,3 +117,22 @@ func (s *Server) handleConnection(conn net.Conn){
 
 	session.process()
 }
+
+
+func (s *Server) Stop() error{
+	close(s.shutdown)
+
+	if s.listener != nil {
+		s.listener.Close()
+	}
+
+	s.wg.Wait()
+
+	if s.config.StorageBackend != nil {
+		return s.config.StorageBackend.Close()
+	}
+
+	return nil
+}
+
+
