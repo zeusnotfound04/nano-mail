@@ -5,19 +5,18 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"sync"
 
 	"github.com/zeusnotfound04/nano-mail/internal/config"
 	"github.com/zeusnotfound04/nano-mail/internal/limiter"
 )
 
-type Server struct {
-	config      *config.Config
-	listener    net.Listener
-	shutdown    chan struct{}
-	wg          sync.WaitGroup
-	rateLimiter limiter.ConnectionLimiter
-}
+// type Server struct {
+// 	config      *config.Config
+// 	listener    net.Listener
+// 	shutdown    chan struct{}
+// 	wg          sync.WaitGroup
+// 	rateLimiter limiter.ConnectionLimiter
+// }
 
 func NewServer(cfg *config.Config) *Server {
 	if cfg == nil {
@@ -25,12 +24,12 @@ func NewServer(cfg *config.Config) *Server {
 	}
 
 	var connectionLimiter limiter.ConnectionLimiter
-	
-	maxPerIP := 10 
+
+	maxPerIP := 10
 	if cfg.ConnectionPerIP > 0 {
 		maxPerIP = cfg.ConnectionPerIP
 	}
-	
+
 	connectionLimiter = limiter.NewRateLimiter(maxPerIP)
 
 	return &Server{
@@ -40,27 +39,25 @@ func NewServer(cfg *config.Config) *Server {
 	}
 }
 
-
 func (s *Server) Start() error {
 	addr := fmt.Sprintf("%s:%s", s.config.Host, s.config.Port)
 
 	var err error
-	s.listener , err = net.Listen("tcp" , addr)
+	s.listener, err = net.Listen("tcp", addr)
 	if err != nil {
-		return fmt.Errorf("Failed to start SMTP server: %w" , err)
+		return fmt.Errorf("failed to start SMTP server: %w", err)
 	}
 
-	s.config.Logger.Info("SMTP server started" ,
-		"host" , s.config.Host,
-		"port" , s.config.Port,
-		"domain" , s.config.Domain)
-	
+	s.config.Logger.Info("SMTP server started",
+		"host", s.config.Host,
+		"port", s.config.Port,
+		"domain", s.config.Domain)
+
 	s.wg.Add(1)
 	go s.acceptConnections()
 
 	return nil
 }
-
 
 func (s *Server) acceptConnections() {
 	defer s.wg.Done()
@@ -94,32 +91,30 @@ func (s *Server) acceptConnections() {
 	}
 }
 
-
-func (s *Server) handleConnection(conn net.Conn){
+func (s *Server) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
 	session := &smtpSession{
-		server:  s,
-		conn: conn,
-		reader: bufio.NewReader(conn),
-		writer: bufio.NewWriter(conn),
-		state: stateInit,
+		server:     s,
+		conn:       conn,
+		reader:     bufio.NewReader(conn),
+		writer:     bufio.NewWriter(conn),
+		state:      stateInit,
 		recipients: make([]string, 0, s.config.MaxRecipients),
 		remoteAddr: conn.RemoteAddr().String(),
-		ctx: context.Background(),
+		ctx:        context.Background(),
 	}
 
 	greeting := fmt.Sprintf("200 %s ESMTP ready\r\n", s.config.Domain)
-	if err :=session.writeResponse(greeting); err != nil {
-		s.config.Logger.Error("Failed to send greeting" , "error" , err , "client" , session.remoteAddr)
+	if err := session.writeResponse(greeting); err != nil {
+		s.config.Logger.Error("Failed to send greeting", "error", err, "client", session.remoteAddr)
 		return
 	}
 
 	session.process()
 }
 
-
-func (s *Server) Stop() error{
+func (s *Server) Stop() error {
 	close(s.shutdown)
 
 	if s.listener != nil {
@@ -135,4 +130,12 @@ func (s *Server) Stop() error{
 	return nil
 }
 
+func StartServer(config *config.Config) (*Server, error) {
+	server := NewServer(config)
+	err := server.Start()
+	if err != nil {
+		return nil, err
+	}
 
+	return server, nil
+}

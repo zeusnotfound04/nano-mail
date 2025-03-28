@@ -14,6 +14,7 @@ import (
 
 	"github.com/zeusnotfound04/nano-mail/internal/config"
 	"github.com/zeusnotfound04/nano-mail/internal/limiter"
+	"github.com/zeusnotfound04/nano-mail/pkg/message"
 	
 )
 
@@ -219,7 +220,7 @@ func (s *smtpSession) processMessageData() error{
 	}
 
 
-	message := &Message{
+	message := &message.Message{
 		From :   s.sender,
 		To:      s.recipients,
 		Subject:  headers.Get("Subject"),
