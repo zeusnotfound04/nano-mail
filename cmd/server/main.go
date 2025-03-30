@@ -8,9 +8,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/zeusnotfound04/nano-mail/database"
+	"github.com/zeusnotfound04/nano-mail/helper"
 	"github.com/zeusnotfound04/nano-mail/internal/config"
 	"github.com/zeusnotfound04/nano-mail/internal/server"
 	"github.com/zeusnotfound04/nano-mail/internal/storage"
+	
 )
 
 func main() {
@@ -27,6 +30,11 @@ func main() {
 	cfg.MaxMessageSize = 20 * 1024 * 1024
 	cfg.ConnectionPerIP = 5
 
+
+	db, err := database.ConnectDB()
+	helper.ErrorPanic(err)
+
+	defer db.Prisma.Disconnect()
 	cfg.StorageBackend = storage.NewMemoryStorage()
 
 	logger.Info("Starting SMTP server....")
