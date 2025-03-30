@@ -66,3 +66,32 @@ func AddMail (state SMTPStore) {
 }
 
 
+func DeleteOldMail() {
+	bgClient := db.NewClient()
+	err := bgClient.Connect()
+
+	if err != nil {
+		log.Logger.Println("[DB][ERROR] : Could not connect to database for cleanup" , err)
+		return
+	}
+
+	defer bgClient.Disconnect()
+
+	for {
+		ctx := context.Background()
+		sevenDaysAgo := time.Now().Add(-7 * 24 * time.Hour)
+
+		_, err = bgClient.Mail.FindMany(
+			db.Mail.Date.Before(sevenDaysAgo),
+		).Delete().Exec(ctx)
+
+
+		if err != nil {
+			log.Logger.Println("Error deleting old emails:", err)
+		} else {
+			log.Logger.Println("Old emails deleted successfully")
+		}
+
+		time.Sleep(24 * time.Hour)
+	}
+}
