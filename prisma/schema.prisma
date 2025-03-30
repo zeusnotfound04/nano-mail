@@ -1,0 +1,19 @@
+generator client {
+  provider = "go run github.com/steebchen/prisma-client-go"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+  
+
+
+model Mail{
+    id                String          @id @default(uuid())
+    mailFrom          String           
+    rcptTo            String
+    data              String
+    date              DateTime        @default(now())
+}
