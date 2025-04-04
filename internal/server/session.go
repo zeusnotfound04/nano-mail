@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	
 	"fmt"
 	"io"
 	"net"
@@ -15,7 +16,6 @@ import (
 	"github.com/zeusnotfound04/nano-mail/internal/config"
 	"github.com/zeusnotfound04/nano-mail/internal/limiter"
 	"github.com/zeusnotfound04/nano-mail/pkg/message"
-	
 )
 
 const (
@@ -72,15 +72,15 @@ func (s *smtpSession) handleHelo(cmd string, params string) {
 	s.state = stateHelo
 
 	if cmd == "HELO" {
-		s.writeResponse(fmt.Sprintf("250-%s\r\n" , s.server.config.Domain))
+		s.writeResponse(fmt.Sprintf("250 %s\r\n", s.server.config.Domain))
 	} else {
 
-		res := fmt.Sprintf("250-%s\r\n" , s.server.config.Domain)
+		resp := fmt.Sprintf("250-%s\r\n", s.server.config.Domain)
 
-		s.writeResponse(res)
+		s.writeResponse(resp)
 
 		capabilities := []string{
-			"250-SIZE" + fmt.Sprintf("%d", s.server.config.MaxMessageSize),
+			"250-SIZE " + fmt.Sprintf("%d", s.server.config.MaxMessageSize),
 			"250-8BITMIME",
 		}
 
@@ -179,6 +179,8 @@ func (s *smtpSession) handleData()  {
 	}
 
 	s.writeResponse("354 Start mail input; end with <CRLF>.<CRLF>\r\n")
+	
+	
 	s.state = stateData
 	s.message.Reset()
 
@@ -198,53 +200,63 @@ func(s *smtpSession) handleReset() {
 }
 
 
-func (s *smtpSession) processMessageData() error{
-	logger := s.server.config.Logger.With(
-		"client" , s.remoteAddr,
-		"from", s.sender,
-		"recipients" , strings.Join(s.recipients , ","),
-	)
+func (s *smtpSession) processMessageData() error {
+    logger := s.server.config.Logger.With(
+        "client", s.remoteAddr,
+        "from", s.sender,
+        "recipients", strings.Join(s.recipients, ","),
+    )
+    
+    // Store the message size BEFORE reading from the buffer
+    messageSize := int64(s.message.Len())
+    
+    logger.Debug("Raw message data", "data", s.message.String())
 
-	msg , err := mail.ReadMessage(&s.message)
-	if err != nil {
-		logger.Error("Failed to parse message" , "error" , err)
-		return err
-	}
+    msg, err := mail.ReadMessage(&s.message)
+    if err != nil {
+        logger.Error("Failed to parse message", "error", err)
+        return err
+    }
 
-	headers := msg.Header
+    headers := msg.Header
 
-	bodyBytes , err := io.ReadAll(msg.Body)
-	if err != nil {
-		logger.Error("Failed to read message body" , "error" , err)
-		return err
-	}
+    bodyBytes, err := io.ReadAll(msg.Body)
+    if err != nil {
+        logger.Error("Failed to read message body", "error", err)
+        return err
+    }
 
+    message := &message.Message{
+        From:    s.sender,
+        To:      s.recipients,
+        Subject: headers.Get("Subject"),
+        Headers: headers,
+        Body:    string(bodyBytes),
+        Size:    messageSize,  // Use the size we captured before parsing
+        Date:    time.Now(),
+    }
+    
+    fmt.Println("Raw Email Data:\n", message)
+    ctx, cancel := context.WithTimeout(s.ctx, 10*time.Second)
+	logger.Debug("Checkpoint-----")
 
-	message := &message.Message{
-		From :   s.sender,
-		To:      s.recipients,
-		Subject:  headers.Get("Subject"),
-		Headers: headers,
-		Body :     string(bodyBytes),
-		Size :   int64(s.message.Len()),
-		Date:     time.Now(),
-	}
-	
-	ctx, cancel := context.WithTimeout(s.ctx , 10*time.Second)
-	defer cancel()
+    defer cancel()
 
-	err= s.server.config.StorageBackend.Store(ctx, message)
-	if err != nil {
-		logger.Error("Failed to store message", "error" , err)
-		return err
-	}
+	logger.Debug("About to store message")
+    err = s.server.config.StorageBackend.Store(ctx, message)
+    if err != nil {
+        logger.Error("Failed to store message", "error", err)
+        return err
+    }
+	logger.Debug("Stored the message successfully")
 
-	logger.Info("Message processed successfully",
-			"size" , message.Size ,
-			"subject" , message.Subject,
-	)
-	return nil
+    logger.Info("Message processed successfully",
+        "size", message.Size,
+        "subject", message.Subject,
+    )
+    return nil
 }
+
 
 func (s *smtpSession) process(){
 	logger := s.server.config.Logger.With("client" , s.remoteAddr)
@@ -265,7 +277,9 @@ func (s *smtpSession) process(){
 		line = strings.TrimSpace(line)
 		logger.Debug("Received command" , "command" , line)
 
+		
 		if s.state == stateData {
+			
 			if line == "." {
 				err := s.processMessageData()
 				if err != nil {
