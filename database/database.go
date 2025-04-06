@@ -1,12 +1,17 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
+	"github.com/lib/pq"
+	"github.com/zeusnotfound04/nano-mail/pkg/message"
+	"golang.org/x/tools/go/callgraph/rta"
 )
 
 
@@ -58,3 +63,39 @@ func InitSchema(db *sql.DB) error {
 	return nil
 }
 
+func StoreMail(ctx context.Context , db *sql.DB , msg *message.Message) error {
+	headerMap := make(map[string]string)
+
+
+	for k , v := range msg.Headers {
+		headerMap[k] = strings.Join(v , ", ")
+	}
+
+	query := `
+	 INSERT INTO emails (sender, recipients , subject , body , headers , size , created_at)
+	 VALUES ($1, $2 , $3 , $4 , $5 ,  $6 , $7)
+	 RETURNING id
+	`
+
+	var id int
+
+	err := db.QueryRowContext(
+		ctx ,
+		query,
+		msg.From ,
+		pq.Array(msg.To),
+		msg.Subject,
+		msg.Body ,
+		headerMap ,
+		msg.Size,
+		msg.Date,
+	).Scan(&id)
+
+	if err != nil {
+		log.Printf("Failed to store emails in database : %v" , err)
+		return fmt.Errorf("Failed to share the email : %w" , err)
+	}
+
+	log.Printf("Email stored in the DATABASE with ID : %d" ,id)
+	return nil
+}
