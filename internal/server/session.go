@@ -237,6 +237,8 @@ func (s *smtpSession) processMessageData() error {
     }
     
     fmt.Println("Raw Email Data:\n", message)
+	fmt.Println("Printing the Context::" , s.ctx)
+
     ctx, cancel := context.WithTimeout(s.ctx, 10*time.Second)
 	logger.Debug("Checkpoint-----")
 
