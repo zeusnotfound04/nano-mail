@@ -25,8 +25,11 @@ func ConnectDB() (*sql.DB, error) {
 		log.Println("Error loading .env file")
 	}
 
+	fmt.Println("DB URL")
+
 	dcs := os.Getenv("DATABASE_URL")
 	db, err := sql.Open("postgres", dcs)
+	fmt.Println("DB URL" , dcs)
 	if err != nil {
 		log.Println(DATABASE_ERROR)
 		return nil, err
@@ -36,46 +39,54 @@ func ConnectDB() (*sql.DB, error) {
 
 }
 
-func InitSchema(db *sql.DB) error {
-	query := `
-		CREATE TABLE IF NOT EXISTS emails (
-		  id   SERIAL  PRIMARY KEY,
-		  sender  TEXT NOT NULL,
-		  recipients TEXT[] NOT NULL,
-		  subjects TEXT,
-		  body TEXT NOT NULL,
-		  size BIGINT NOT NULL,
-		  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 
-		);
 
-		CREATE INDEX IF NOT EXISTS idx_emails_created_at ON emails(created_at);
-		CREATE INDEX IF NOT EXISTS idx_emails_sender ON emails(sender)
-	`
-	_, err := db.Exec(query)
 
-	if err != nil {
-		return fmt.Errorf("Failed to create the schema : %w", err)
-	}
-
-	return nil
-}
 
 func StoreMail(ctx context.Context, db *sql.DB, msg *message.Message) error {
-	headerMap := make(map[string]string)
-
-	for k, v := range msg.Headers {
-		headerMap[k] = strings.Join(v, ", ")
+	fmt.Println("📨 Incoming message to store in DB:")
+	fmt.Printf("From: %s\nTo: %v\nSubject: %s\nSize: %d\nDate: %v\n",
+		msg.From, msg.To, msg.Subject, msg.Size, msg.Date)
+		fmt.Println("ander jaaa chuka hai store mail func ka db hai ji ::::::\n" , db  )
+	// Check DB connection
+	fmt.Println("🔌 Checking DB connection...")
+	if err := db.PingContext(ctx); err != nil {
+		return fmt.Errorf("❌ database connection unavailable: %w", err)
 	}
 
+	// if err := db.Ping() ; err != nil {
+	// 	return fmt.Errorf("❌ fucked up")
+	// }
+	fmt.Println("✅ DB connection is alive")
+
+	// Print and convert headers
+	fmt.Printf("📬 Headers Type: %T\n", msg.Headers)
+
+	headerMap := make(map[string]string)
+	for k, v := range msg.Headers {
+		fmt.Printf("🔹 Header: %s => %v\n", k, v)
+		headerMap[k] = strings.Join(v, ", ")
+	}
+	fmt.Println("✅ Converted header map:\n", headerMap)
+
+	// Optional: convert headers to JSON string (if you prefer)
+	/*
+	headersJSON, err := json.Marshal(headerMap)
+	if err != nil {
+		return fmt.Errorf("failed to encode headers: %w", err)
+	}
+	*/
+
 	query := `
-	 INSERT INTO emails (sender, recipients , subject , body , headers , size , created_at)
-	 VALUES ($1, $2 , $3 , $4 , $5 ,  $6 , $7)
-	 RETURNING id
+		INSERT INTO emails (
+			sender, recipients, subject, body, headers, size, created_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7
+		)
+		RETURNING id;
 	`
 
 	var id int
-
 	err := db.QueryRowContext(
 		ctx,
 		query,
@@ -83,19 +94,22 @@ func StoreMail(ctx context.Context, db *sql.DB, msg *message.Message) error {
 		pq.Array(msg.To),
 		msg.Subject,
 		msg.Body,
-		headerMap,
+		headerMap, // use headersJSON here if you go that route
 		msg.Size,
 		msg.Date,
 	).Scan(&id)
 
 	if err != nil {
-		log.Printf("Failed to store emails in database : %v", err)
-		return fmt.Errorf("Failed to share the email : %w", err)
+		log.Printf("❌ Failed to store email in database: %v", err)
+		return fmt.Errorf("failed to store the email: %w", err)
 	}
 
-	log.Printf("Email stored in the DATABASE with ID : %d", id)
+	log.Printf("✅ Email stored in the DATABASE with ID: %d", id)
 	return nil
 }
+
+
+
 
 func DeleteOldMails(ctx context.Context, db *sql.DB, olderThan time.Duration) (int64, error) {
 	cutOffTime := time.Now().Add(-olderThan)
@@ -107,12 +121,12 @@ func DeleteOldMails(ctx context.Context, db *sql.DB, olderThan time.Duration) (i
 
 	result, err := db.ExecContext(ctx, query, cutOffTime)
 	if err != nil {
-		return 0, fmt.Errorf("Failed to delete old emails : %w", err)
+		return 0, fmt.Errorf("failed to delete old emails : %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return 0, fmt.Errorf("Failed to get affected rows : %w", err)
+		return 0, fmt.Errorf("failed to get affected rows : %w", err)
 	}
 
 	log.Printf("Deleted %d emails older than %s", rowsAffected, olderThan.String())

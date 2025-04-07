@@ -4,7 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	
+	"database/sql"
+
 	"fmt"
 	"io"
 	"net"
@@ -13,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/zeusnotfound04/nano-mail/database"
 	"github.com/zeusnotfound04/nano-mail/internal/config"
 	"github.com/zeusnotfound04/nano-mail/internal/limiter"
 	"github.com/zeusnotfound04/nano-mail/pkg/message"
@@ -28,13 +30,13 @@ const (
 )
 
 type Server struct {
-	config        *config.Config
-   
-	listener      net.Listener
-	shutdown      chan struct{}
-	wg            sync.WaitGroup
+	config *config.Config
 
-	rateLimiter   limiter.ConnectionLimiter
+	listener    net.Listener
+	shutdown    chan struct{}
+	wg          sync.WaitGroup
+	db          *sql.DB
+	rateLimiter limiter.ConnectionLimiter
 }
 
 type smtpSession struct {
@@ -89,18 +91,17 @@ func (s *smtpSession) handleHelo(cmd string, params string) {
 		}
 
 		capabilities[len(capabilities)-1] = strings.Replace(
-			capabilities[len(capabilities)-1], "250-" , "250" , 1 )
+			capabilities[len(capabilities)-1], "250-", "250", 1)
 
 		for _, cap := range capabilities {
 			s.writeResponse(cap + "\r\n")
 		}
 	}
-	logger.Info("Client identified" , "command" , cmd , "hostname" , params)
+	logger.Info("Client identified", "command", cmd, "hostname", params)
 }
 
-
 func (s *smtpSession) handleMailFrom(params string) {
-	logger := s.server.config.Logger.With("client" , s.remoteAddr)
+	logger := s.server.config.Logger.With("client", s.remoteAddr)
 
 	if s.state < stateHelo {
 		s.writeResponse("503 Bad sequence in parameters\r\n")
@@ -108,38 +109,37 @@ func (s *smtpSession) handleMailFrom(params string) {
 	}
 
 	addr := strings.TrimSpace(params[5:])
-	addr = strings.Trim(addr , "<>")
+	addr = strings.Trim(addr, "<>")
 
 	if addr == "" {
 		s.writeResponse("501 Invalid sender address format\r\n")
 		return
 	}
 
-	if !strings.Contains(addr , "@") {
+	if !strings.Contains(addr, "@") {
 		s.writeResponse("501 Invalid sender address format\r\n")
 		return
 	}
 
 	s.sender = addr
-	s.state = stateMailFrom 
+	s.state = stateMailFrom
 	s.recipients = nil
 	s.message.Reset()
 
 	s.writeResponse("250 OK\r\n")
-	logger.Info("Mail from", "sender" , addr)
-	
+	logger.Info("Mail from", "sender", addr)
+
 }
 
-
-func (s *smtpSession) handleRcptTo(params string){
-	logger := s.server.config.Logger.With("client" , s.remoteAddr)
+func (s *smtpSession) handleRcptTo(params string) {
+	logger := s.server.config.Logger.With("client", s.remoteAddr)
 
 	if s.state < stateMailFrom {
 		s.writeResponse("503 Bad sequence of commands\r\n")
 		return
 	}
 
-	if !strings.HasPrefix(strings.ToUpper(params) , "TO:") {
+	if !strings.HasPrefix(strings.ToUpper(params), "TO:") {
 		s.writeResponse("501 Syntax error in parameters\r\n")
 		return
 	}
@@ -150,14 +150,14 @@ func (s *smtpSession) handleRcptTo(params string){
 	}
 
 	addr := strings.TrimSpace(params[3:])
-	addr = strings.Trim(addr , "<>")
+	addr = strings.Trim(addr, "<>")
 
-	if addr	 == "" {
+	if addr == "" {
 		s.writeResponse("501 Empty recipient address\r\n")
 		return
 	}
 
-	if !strings.Contains(addr , "@") {
+	if !strings.Contains(addr, "@") {
 		s.writeResponse("501 Invalid recipient address format\r\n")
 		return
 	}
@@ -166,29 +166,27 @@ func (s *smtpSession) handleRcptTo(params string){
 	s.state = stateRcptTo
 
 	s.writeResponse("250 OK\r\n")
-	logger.Info("Recipient added", "recipient" , addr)
+	logger.Info("Recipient added", "recipient", addr)
 }
 
-
-func (s *smtpSession) handleData()  {
+func (s *smtpSession) handleData() {
 	logger := s.server.config.Logger.With("client", s.remoteAddr)
 
+	fmt.Println("handle data func ka db hai ji ::::::\n" , s.server.db  )
 	if s.state < stateRcptTo {
 		s.writeResponse("503 Bad sequence of commands\r\n")
 		return
 	}
 
 	s.writeResponse("354 Start mail input; end with <CRLF>.<CRLF>\r\n")
-	
-	
+
 	s.state = stateData
 	s.message.Reset()
 
 	logger.Info("Date phase started")
 }
 
-
-func(s *smtpSession) handleReset() {
+func (s *smtpSession) handleReset() {
 	s.state = stateHelo
 	s.sender = ""
 	s.recipients = nil
@@ -196,114 +194,115 @@ func(s *smtpSession) handleReset() {
 	s.headers = make(map[string][]string)
 
 	s.writeResponse("250 OK\r\n")
-	s.server.config.Logger.Info("Session reset", "client" , s.remoteAddr)
+	s.server.config.Logger.Info("Session reset", "client", s.remoteAddr)
 }
-
 
 func (s *smtpSession) processMessageData() error {
-    logger := s.server.config.Logger.With(
-        "client", s.remoteAddr,
-        "from", s.sender,
-        "recipients", strings.Join(s.recipients, ","),
-    )
-    
-    // Store the message size BEFORE reading from the buffer
-    messageSize := int64(s.message.Len())
-    
-    logger.Debug("Raw message data", "data", s.message.String())
+	logger := s.server.config.Logger.With(
+		"client", s.remoteAddr,
+		"from", s.sender,
+		"recipients", strings.Join(s.recipients, ","),
+	)
 
-    msg, err := mail.ReadMessage(&s.message)
-    if err != nil {
-        logger.Error("Failed to parse message", "error", err)
-        return err
-    }
+	// Store the message size BEFORE reading from the buffer
+	messageSize := int64(s.message.Len())
 
-    headers := msg.Header
+	logger.Debug("Raw message data", "data", s.message.String())
 
-    bodyBytes, err := io.ReadAll(msg.Body)
-    if err != nil {
-        logger.Error("Failed to read message body", "error", err)
-        return err
-    }
+	msg, err := mail.ReadMessage(&s.message)
+	if err != nil {
+		logger.Error("Failed to parse message", "error", err)
+		return err
+	}
 
-    message := &message.Message{
-        From:    s.sender,
-        To:      s.recipients,
-        Subject: headers.Get("Subject"),
-        Headers: headers,
-        Body:    string(bodyBytes),
-        Size:    messageSize,  // Use the size we captured before parsing
-        Date:    time.Now(),
-    }
-    
-    fmt.Println("Raw Email Data:\n", message)
-	fmt.Println("Printing the Context::" , s.ctx)
+	headers := msg.Header
 
-    ctx, cancel := context.WithTimeout(s.ctx, 10*time.Second)
-	logger.Debug("Checkpoint-----")
+	bodyBytes, err := io.ReadAll(msg.Body)
+	if err != nil {
+		logger.Error("Failed to read message body", "error", err)
+		return err
+	}
 
-    defer cancel()
+	message := &message.Message{
+		From:    s.sender,
+		To:      s.recipients,
+		Subject: headers.Get("Subject"),
+		Headers: headers,
+		Body:    string(bodyBytes),
+		Size:    messageSize, // Use the size we captured before parsing
+		Date:    time.Now(),
+	}
 
-	logger.Debug("About to store message")
-    err = s.server.config.StorageBackend.Store(ctx, message)
-    if err != nil {
-        logger.Error("Failed to store message", "error", err)
-        return err
-    }
+	fmt.Println("Raw Email Data:\n", message)
+	fmt.Println("Printing the Context::", s.ctx)
+
+	ctx, cancel := context.WithTimeout(s.ctx, 10*time.Second)
+	fmt.Println("Checkpoint-----1")
+
+	defer cancel()
+
+	fmt.Println("Checkpoint-----2")
+	fmt.Println("" , s.server.db  )
+	err = database.StoreMail(ctx, s.server.db, message)
+	if err != nil {
+		logger.Error("Failed to store message in database", "error", err)
+		fmt.Println("Failed to store message in the db")
+		return err
+	}
+	
+	fmt.Println("Stored the message successfully")
+
 	logger.Debug("Stored the message successfully")
 
-    logger.Info("Message processed successfully",
-        "size", message.Size,
-        "subject", message.Subject,
-    )
-    return nil
+	logger.Info("Message processed successfully",
+		"size", message.Size,
+		"subject", message.Subject,
+	)
+	return nil
 }
 
-
-func (s *smtpSession) process(){
-	logger := s.server.config.Logger.With("client" , s.remoteAddr)
+func (s *smtpSession) process() {
+	logger := s.server.config.Logger.With("client", s.remoteAddr)
 
 	for {
 		s.conn.SetReadDeadline(time.Now().Add(s.server.config.ReadTimeout))
 		s.conn.SetWriteDeadline(time.Now().Add(s.server.config.WriteTimeout))
 
-		line , err := s.reader.ReadString('\n')
+		line, err := s.reader.ReadString('\n')
 		if err != nil {
 			if err != io.EOF {
-				logger.Error("Failed to read command" , "error" , err)
+				logger.Error("Failed to read command", "error", err)
 			}
 			return
 		}
 
-	
 		line = strings.TrimSpace(line)
-		logger.Debug("Received command" , "command" , line)
+		logger.Debug("Received command", "command", line)
 
-		
 		if s.state == stateData {
-			
+
 			if line == "." {
 				err := s.processMessageData()
 				if err != nil {
-					logger.Error("Failed to process message data" , "error" , err)
-					s.writeResponse("554 Transaction failed\r\n" )
+					logger.Error("Failed to process message data", "error", err)
+					s.writeResponse("554 Transaction failed\r\n")
 					continue
 				}
 
 				s.state = stateHelo
 				s.writeResponse("250 OK: message accepted\r\n")
 				continue
-				
+
 			}
 
-			if strings.HasPrefix(line , "..") {
+			if strings.HasPrefix(line, "..") {
 				line = line[1:]
 			}
 
 			s.message.WriteString(line + "\r\n")
 
 			if s.message.Len() > int(s.server.config.MaxMessageSize) {
-				logger.Warn("Message size limit exceeded" , "size" , s.message.Len())
+				logger.Warn("Message size limit exceeded", "size", s.message.Len())
 				s.writeResponse("552 Message size exceeds fixed limit\r\n")
 				s.message.Reset()
 				s.state = stateHelo
@@ -314,17 +313,16 @@ func (s *smtpSession) process(){
 
 		}
 
-		parts := strings.SplitN(line , " " , 2)
+		parts := strings.SplitN(line, " ", 2)
 		cmd := strings.ToUpper(parts[0])
 		var params string
 		if len(parts) > 1 {
 			params = parts[1]
 		}
 
-
 		switch cmd {
-		case "HELO" , "EHLO":
-			s.handleHelo(cmd , params)
+		case "HELO", "EHLO":
+			s.handleHelo(cmd, params)
 		case "MAIL":
 			s.handleMailFrom(params)
 		case "RCPT":
@@ -342,8 +340,6 @@ func (s *smtpSession) process(){
 			s.writeResponse("502 Command not implemented\r\n")
 		}
 
-
 	}
-
 
 }

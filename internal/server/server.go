@@ -3,6 +3,7 @@ package server
 import (
 	"bufio"
 	"context"
+	"database/sql"
 	"fmt"
 	"net"
 
@@ -18,10 +19,12 @@ import (
 // 	rateLimiter limiter.ConnectionLimiter
 // }
 
-func NewServer(cfg *config.Config) *Server {
+func NewServer(cfg *config.Config , db *sql.DB) *Server {
 	if cfg == nil {
 		cfg = config.DefaultConfig()
 	}
+	
+	fmt.Println("new sever func ka db hai ji ::::::\n" , db  )
 
 	var connectionLimiter limiter.ConnectionLimiter
 
@@ -36,6 +39,7 @@ func NewServer(cfg *config.Config) *Server {
 		config:      cfg,
 		shutdown:    make(chan struct{}),
 		rateLimiter: connectionLimiter,
+		db:  db,
 	}
 }
 
@@ -61,7 +65,7 @@ func (s *Server) Start() error {
 
 func (s *Server) acceptConnections() {
 	defer s.wg.Done()
-
+	fmt.Println("accept connection func ka db hai ji ::::::\n" , s.db  )
 	for {
 		select {
 		case <-s.shutdown:
@@ -93,7 +97,8 @@ func (s *Server) acceptConnections() {
 
 func (s *Server) handleConnection(conn net.Conn) {
 	defer conn.Close()
-
+	fmt.Println("handle connection func ka db hai ji ::::::\n" , s.db  )
+	
 	session := &smtpSession{
 		server:     s,
 		conn:       conn,
@@ -130,8 +135,10 @@ func (s *Server) Stop() error {
 	return nil
 }
 
-func StartServer(config *config.Config) (*Server, error) {
-	server := NewServer(config)
+func StartServer(config *config.Config ,  db *sql.DB) (*Server, error) {
+	
+	fmt.Println("start server func ka db hai ji ::::::\n" , db  )
+	server := NewServer(config , db)
 	err := server.Start()
 	if err != nil {
 		return nil, err

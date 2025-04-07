@@ -2,18 +2,19 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-		// "github.com/zeusnotfound04/nano-mail/database"
-		// "github.com/zeusnotfound04/nano-mail/helper"
+	// "github.com/zeusnotfound04/nano-mail/database"
+	// "github.com/zeusnotfound04/nano-mail/helper"
+	"github.com/zeusnotfound04/nano-mail/database"
 	"github.com/zeusnotfound04/nano-mail/internal/config"
 	"github.com/zeusnotfound04/nano-mail/internal/server"
-	"github.com/zeusnotfound04/nano-mail/internal/storage"
-	
 )
 
 func main() {
@@ -31,14 +32,16 @@ func main() {
 	cfg.ConnectionPerIP = 5
 
 
-	// db, err := database.ConnectDB()
-	// helper.ErrorPanic(err)
 
-	// defer db.Prisma.Disconnect()
-	cfg.StorageBackend = storage.NewMemoryStorage()
+	db, err := database.ConnectDB()
+	fmt.Println("main func ka db hai ji ::::::\n" , db  )
+	if err != nil {
+		log.Fatal("Failed to connect to DB:", err)
+	}
+	defer db.Close()
 
 	logger.Info("Starting SMTP server....")
-	srv , err := server.StartServer(cfg)
+	srv , err := server.StartServer(cfg , db)
 	if err != nil {
 		logger.Error("Failed to start server" , "error" , err)
 		os.Exit(1)

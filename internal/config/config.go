@@ -24,6 +24,7 @@ type Config struct {
 	Logger             *slog.Logger
 	ConnectionPerIP    int
 	ConnectionLimiter  map[string]limiter.ConnectionLimiter
+	
 }
 
 
