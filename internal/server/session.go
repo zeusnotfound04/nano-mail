@@ -172,7 +172,6 @@ func (s *smtpSession) handleRcptTo(params string) {
 func (s *smtpSession) handleData() {
 	logger := s.server.config.Logger.With("client", s.remoteAddr)
 
-	fmt.Println("handle data func ka db hai ji ::::::\n" , s.server.db  )
 	if s.state < stateRcptTo {
 		s.writeResponse("503 Bad sequence of commands\r\n")
 		return
@@ -234,10 +233,8 @@ func (s *smtpSession) processMessageData() error {
 	}
 
 	fmt.Println("Raw Email Data:\n", message)
-	fmt.Println("Printing the Context::", s.ctx)
-
 	ctx, cancel := context.WithTimeout(s.ctx, 10*time.Second)
-	fmt.Println("Checkpoint-----1")
+	
 
 	defer cancel()
 

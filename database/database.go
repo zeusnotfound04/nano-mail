@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -28,73 +29,107 @@ func ConnectDB() (*sql.DB, error) {
 	fmt.Println("DB URL")
 
 	dcs := os.Getenv("DATABASE_URL")
+	if dcs == "" {
+		return nil, fmt.Errorf("DATABASE_URL environment variable is empty")
+	}
+
+	hostStart := strings.Index(dcs, "@")
+	hostEnd := strings.LastIndex(dcs, ":")
+	if hostStart > 0 && hostEnd > hostStart {
+		hostname := dcs[hostStart+1 : hostEnd]
+
+		_, err := net.LookupHost(hostname)
+		if err != nil {
+			log.Printf("Warning: Could not resolve database hostname %s: %v", hostname, err)
+		}
+	}
+
 	db, err := sql.Open("postgres", dcs)
-	fmt.Println("DB URL" , dcs)
+	fmt.Println("DB URL", dcs)
 	if err != nil {
 		log.Println(DATABASE_ERROR)
 		return nil, err
 	}
+
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(5 * time.Minute)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := db.PingContext(ctx); err != nil {
+		log.Printf("Failed to verify database connection: %v", err)
+		return nil, fmt.Errorf("database connection validation failed: %w", err)
+	}
+
 	log.Println(DATABASE_CONNECTED)
 	return db, nil
-
 }
-
-
-
-
 
 func StoreMail(ctx context.Context, db *sql.DB, msg *message.Message) error {
 	fmt.Println("📨 Incoming message to store in DB:")
 	fmt.Printf("From: %s\nTo: %v\nSubject: %s\nSize: %d\nDate: %v\n",
 		msg.From, msg.To, msg.Subject, msg.Size, msg.Date)
-		fmt.Println("ander jaaa chuka hai store mail func ka db hai ji ::::::\n" , db  )
-	// Check DB connection
+
 	fmt.Println("🔌 Checking DB connection...")
-	if err := db.PingContext(ctx); err != nil {
-		return fmt.Errorf("❌ database connection unavailable: %w", err)
+	var err error
+	for retries := 0; retries < 3; retries++ {
+		err = db.PingContext(ctx)
+		if err == nil {
+			break 
+		}
+		log.Printf("DB connection check failed (attempt %d/3): %v", retries+1, err)
+		time.Sleep(time.Duration(retries+1) * 500 * time.Millisecond) // Backoff
 	}
 
-	// if err := db.Ping() ; err != nil {
-	// 	return fmt.Errorf("❌ fucked up")
-	// }
+	if err != nil {
+		
+		log.Println("Attempting to reestablish database connection...")
+		newDB, reconnectErr := ConnectDB()
+		if reconnectErr != nil {
+			log.Printf("Failed to reconnect to database: %v", reconnectErr)
+			return fmt.Errorf("❌ database connection unavailable: %w", err)
+		}
+
+		db = newDB
+
+		if pingErr := db.PingContext(ctx); pingErr != nil {
+			return fmt.Errorf("❌ reconnected database still unavailable: %w", pingErr)
+		}
+	}
+
 	fmt.Println("✅ DB connection is alive")
 
-	// Print and convert headers
 	fmt.Printf("📬 Headers Type: %T\n", msg.Headers)
-
-	headerMap := make(map[string]string)
 	for k, v := range msg.Headers {
 		fmt.Printf("🔹 Header: %s => %v\n", k, v)
-		headerMap[k] = strings.Join(v, ", ")
 	}
-	fmt.Println("✅ Converted header map:\n", headerMap)
 
-	// Optional: convert headers to JSON string (if you prefer)
-	/*
-	headersJSON, err := json.Marshal(headerMap)
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("failed to encode headers: %w", err)
+		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	*/
+	defer tx.Rollback()
 
+	
 	query := `
 		INSERT INTO emails (
-			sender, recipients, subject, body, headers, size, created_at
+			sender, recipients, subject, body, size, created_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7
+			$1, $2, $3, $4, $5, $6
 		)
 		RETURNING id;
 	`
 
 	var id int
-	err := db.QueryRowContext(
+	err = tx.QueryRowContext(
 		ctx,
 		query,
 		msg.From,
 		pq.Array(msg.To),
 		msg.Subject,
 		msg.Body,
-		headerMap, // use headersJSON here if you go that route
 		msg.Size,
 		msg.Date,
 	).Scan(&id)
@@ -104,12 +139,13 @@ func StoreMail(ctx context.Context, db *sql.DB, msg *message.Message) error {
 		return fmt.Errorf("failed to store the email: %w", err)
 	}
 
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
 	log.Printf("✅ Email stored in the DATABASE with ID: %d", id)
 	return nil
 }
-
-
-
 
 func DeleteOldMails(ctx context.Context, db *sql.DB, olderThan time.Duration) (int64, error) {
 	cutOffTime := time.Now().Add(-olderThan)
