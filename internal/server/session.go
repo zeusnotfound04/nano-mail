@@ -5,11 +5,11 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-
 	"fmt"
 	"io"
 	"net"
 	"net/mail"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -222,56 +222,152 @@ func (s *smtpSession) processMessageData() error {
 	)
 
 	messageSize := int64(s.message.Len())
+	messageData := s.message.String()
 
-	logger.Debug("Raw message data", "data", s.message.String())
+	logger.Debug("Message size", "bytes", messageSize)
 
-	msg, err := mail.ReadMessage(&s.message)
-	if err != nil {
-		logger.Error("Failed to parse message", "error", err)
-		return err
+	// Custom parsing for messages that might have malformed headers
+	var subject string
+	var body string
+
+	// Split the message into headers and body
+	parts := strings.SplitN(messageData, "\r\n\r\n", 2)
+	if len(parts) == 2 {
+		headers := parts[0]
+		body = parts[1]
+
+		// Extract subject from headers
+		for _, line := range strings.Split(headers, "\r\n") {
+			if strings.HasPrefix(strings.ToLower(line), "subject:") {
+				subject = strings.TrimSpace(line[8:])
+				break
+			}
+		}
+	} else {
+		// Fallback if we can't split properly
+		body = messageData
 	}
 
-	// Extract just the subject from headers
-	subject := msg.Header.Get("Subject")
-
-	bodyBytes, err := io.ReadAll(msg.Body)
-	if err != nil {
-		logger.Error("Failed to read message body", "error", err)
-		return err
+	// Fallback to original mail package parsing if needed
+	if subject == "" {
+		// Try to parse with standard mail package as fallback
+		msg, err := mail.ReadMessage(bytes.NewBufferString(messageData))
+		if err == nil {
+			subject = msg.Header.Get("Subject")
+			bodyBytes, _ := io.ReadAll(msg.Body)
+			if len(bodyBytes) > 0 {
+				body = string(bodyBytes)
+			}
+		} else {
+			logger.Warn("Failed to parse with standard mail package, using fallback", "error", err)
+		}
 	}
 
 	message := &message.Message{
 		From:    s.sender,
 		To:      s.recipients,
 		Subject: subject,
-		Body:    string(bodyBytes),
+		Body:    body,
 		Size:    messageSize,
 		Date:    time.Now(),
 	}
 
-	fmt.Println("Raw Email Data:\n", message)
-	ctx, cancel := context.WithTimeout(s.ctx, 10*time.Second)
+	fmt.Println("Raw Email Data summary:")
+	fmt.Printf("From: %s\nTo: %v\nSubject: %s\nSize: %d bytes\n",
+		message.From, message.To, message.Subject, message.Size)
 
+	ctx, cancel := context.WithTimeout(s.ctx, 10*time.Second)
 	defer cancel()
 
-	fmt.Println("Checkpoint-----2")
-	fmt.Println("", s.server.db)
-	err = database.StoreMail(ctx, s.server.db, message)
+	fmt.Println("Storing message in database...")
+	err := database.StoreMail(ctx, s.server.db, message)
 	if err != nil {
 		logger.Error("Failed to store message in database", "error", err)
-		fmt.Println("Failed to store message in the db")
+		fmt.Println("Failed to store message in the database:", err)
 		return err
 	}
 
-	fmt.Println("Stored the message successfully")
-
-	logger.Debug("Stored the message successfully")
-
+	fmt.Println("Message stored successfully!")
 	logger.Info("Message processed successfully",
 		"size", message.Size,
 		"subject", message.Subject,
 	)
 	return nil
+}
+
+func (s *smtpSession) handleBdat(params string) {
+	logger := s.server.config.Logger.With("client", s.remoteAddr)
+
+	if s.state < stateRcptTo {
+		s.writeResponse("503 Bad sequence of commands\r\n")
+		return
+	}
+
+	// Parse BDAT parameters: size and optional LAST flag
+	parts := strings.Fields(params)
+	if len(parts) < 1 {
+		s.writeResponse("501 Invalid BDAT parameters\r\n")
+		return
+	}
+
+	// Parse chunk size
+	chunkSize, err := strconv.Atoi(parts[0])
+	if err != nil {
+		logger.Error("Invalid BDAT chunk size", "params", params, "error", err)
+		s.writeResponse("501 Invalid BDAT chunk size\r\n")
+		return
+	}
+
+	// Check if this is the last chunk
+	isLast := false
+	if len(parts) > 1 && strings.ToUpper(parts[1]) == "LAST" {
+		isLast = true
+	}
+
+	logger.Info("Receiving BDAT chunk", "size", chunkSize, "isLast", isLast)
+
+	// Read the binary data chunk
+	chunk := make([]byte, chunkSize)
+	bytesRead := 0
+
+	for bytesRead < chunkSize {
+		n, err := s.reader.Read(chunk[bytesRead:])
+		if err != nil {
+			logger.Error("Error reading BDAT chunk", "error", err)
+			s.writeResponse("554 Transaction failed\r\n")
+			return
+		}
+		bytesRead += n
+	}
+
+	// Append chunk to message buffer
+	s.message.Write(chunk)
+
+	// Check if we've exceeded size limits
+	if s.message.Len() > int(s.server.config.MaxMessageSize) {
+		logger.Warn("Message size limit exceeded", "size", s.message.Len())
+		s.writeResponse("552 Message size exceeds fixed limit\r\n")
+		s.message.Reset()
+		s.state = stateHelo
+		return
+	}
+
+	// Acknowledge receipt of the chunk
+	s.writeResponse("250 OK\r\n")
+
+	// Process the complete message if this was the last chunk
+	if isLast {
+		logger.Info("Processing complete BDAT message")
+		err := s.processMessageData()
+		if err != nil {
+			logger.Error("Failed to process BDAT message data", "error", err)
+			s.writeResponse("554 Transaction failed\r\n")
+			return
+		}
+
+		s.state = stateHelo
+		logger.Info("BDAT message accepted successfully")
+	}
 }
 
 func (s *smtpSession) process() {
@@ -350,6 +446,8 @@ func (s *smtpSession) process() {
 			s.handleRcptTo(params)
 		case "DATA":
 			s.handleData()
+		case "BDAT":
+			s.handleBdat(params)
 		case "RSET":
 			s.handleReset()
 		case "NOOP":
