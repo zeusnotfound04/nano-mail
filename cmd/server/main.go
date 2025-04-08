@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"log/slog"
@@ -38,8 +39,8 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to connect to DB:", err)
 	}
-	// initSchema(db)
-	defer db.Close()
+	initSchema(db)
+	// defer db.Close()
 
 	logger.Info("Starting SMTP server....")
 	srv , err := server.StartServer(cfg , db)
@@ -83,25 +84,25 @@ func main() {
 
 }
 
-// // 
-// func initSchema(db *sql.DB) error {
-//     query := `
-//     CREATE TABLE IF NOT EXISTS emails (
-//         id SERIAL PRIMARY KEY,
-//         sender TEXT,
-//         recipients TEXT[],
-//         subject TEXT,
-//         body TEXT,
-//         size BIGINT,
-//         created_at TIMESTAMPTZ DEFAULT NOW()
-//     );
-//     `
-//     _, err := db.Exec(query)
+//  For intial scehama intialization for the first time
+func initSchema(db *sql.DB) error {
+    query := `
+    CREATE TABLE IF NOT EXISTS emails (
+        id SERIAL PRIMARY KEY,
+        sender TEXT,
+        recipients TEXT[],
+        subject TEXT,
+        body TEXT,
+        size BIGINT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    `
+    _, err := db.Exec(query)
 
-//     if err != nil {
-//         return fmt.Errorf("failed to initialize schema: %w", err)
-//     }
+    if err != nil {
+        return fmt.Errorf("failed to initialize schema: %w", err)
+    }
 
-// 	fmt.Println("Schema initialized successfully!!")
-//     return nil
-// }
+	fmt.Println("Schema initialized successfully!!")
+    return nil
+}

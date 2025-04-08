@@ -89,17 +89,17 @@ func StoreMail(ctx context.Context, db *sql.DB, msg *message.Message) error {
 		newDB, reconnectErr := ConnectDB()
 		if reconnectErr != nil {
 			log.Printf("Failed to reconnect to database: %v", reconnectErr)
-			return fmt.Errorf("❌ database connection unavailable: %w", err)
+			return fmt.Errorf(" database connection unavailable: %w", err)
 		}
 
 		db = newDB
 
 		if pingErr := db.PingContext(ctx); pingErr != nil {
-			return fmt.Errorf("❌ reconnected database still unavailable: %w", pingErr)
+			return fmt.Errorf(" reconnected database still unavailable: %w", pingErr)
 		}
 	}
 
-	fmt.Println("✅ DB connection is alive")
+	fmt.Println("DB connection is alive")
 
 	fmt.Printf("📬 Headers Type: %T\n", msg.Headers)
 	for k, v := range msg.Headers {
@@ -135,7 +135,7 @@ func StoreMail(ctx context.Context, db *sql.DB, msg *message.Message) error {
 	).Scan(&id)
 
 	if err != nil {
-		log.Printf("❌ Failed to store email in database: %v", err)
+		log.Printf(" Failed to store email in database: %v", err)
 		return fmt.Errorf("failed to store the email: %w", err)
 	}
 
@@ -143,7 +143,7 @@ func StoreMail(ctx context.Context, db *sql.DB, msg *message.Message) error {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	log.Printf("✅ Email stored in the DATABASE with ID: %d", id)
+	log.Printf(" Email stored in the DATABASE with ID: %d", id)
 	return nil
 }
 
