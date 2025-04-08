@@ -87,13 +87,13 @@ func (s *smtpSession) handleHelo(cmd string, params string) {
 	if cmd == "HELO" {
 		s.writeResponse(fmt.Sprintf("250 %s\r\n", s.server.config.Domain))
 	} else {
+		// For EHLO, we need to send a multi-line response with capabilities
+		// First line
+		s.writeResponse(fmt.Sprintf("250-%s\r\n", s.server.config.Domain))
 
-		resp := fmt.Sprintf("250-%s\r\n", s.server.config.Domain)
-
-		s.writeResponse(resp)
-
+		// Build capabilities
 		capabilities := []string{
-			"250-SIZE " + fmt.Sprintf("%d", s.server.config.MaxMessageSize),
+			fmt.Sprintf("250-SIZE %d", s.server.config.MaxMessageSize),
 			"250-8BITMIME",
 		}
 
@@ -101,13 +101,21 @@ func (s *smtpSession) handleHelo(cmd string, params string) {
 			capabilities = append(capabilities, "250-CHUNKING")
 		}
 
-		capabilities[len(capabilities)-1] = strings.Replace(
-			capabilities[len(capabilities)-1], "250-", "250", 1)
+		// Add additional standard capabilities
+		capabilities = append(capabilities, "250-PIPELINING", "250-SMTPUTF8")
 
+		// Last capability should not have a dash after 250
+		lastCapability := "250 HELP"
+
+		// Send all capabilities except the last one
 		for _, cap := range capabilities {
 			s.writeResponse(cap + "\r\n")
 		}
+
+		// Send the last capability
+		s.writeResponse(lastCapability + "\r\n")
 	}
+
 	logger.Info("Client identified", "command", cmd, "hostname", params)
 }
 
