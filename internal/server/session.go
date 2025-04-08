@@ -49,7 +49,6 @@ type smtpSession struct {
 	sender     string
 	recipients []string
 	message    bytes.Buffer
-	headers    map[string][]string
 	remoteAddr string
 	ctx        context.Context
 }
@@ -190,7 +189,6 @@ func (s *smtpSession) handleReset() {
 	s.sender = ""
 	s.recipients = nil
 	s.message.Reset()
-	s.headers = make(map[string][]string)
 
 	s.writeResponse("250 OK\r\n")
 	s.server.config.Logger.Info("Session reset", "client", s.remoteAddr)
@@ -213,7 +211,8 @@ func (s *smtpSession) processMessageData() error {
 		return err
 	}
 
-	headers := msg.Header
+	// Extract just the subject from headers
+	subject := msg.Header.Get("Subject")
 
 	bodyBytes, err := io.ReadAll(msg.Body)
 	if err != nil {
@@ -224,28 +223,26 @@ func (s *smtpSession) processMessageData() error {
 	message := &message.Message{
 		From:    s.sender,
 		To:      s.recipients,
-		Subject: headers.Get("Subject"),
-		Headers: headers,
+		Subject: subject,
 		Body:    string(bodyBytes),
-		Size:    messageSize, // Use the size we captured before parsing
+		Size:    messageSize,
 		Date:    time.Now(),
 	}
 
 	fmt.Println("Raw Email Data:\n", message)
 	ctx, cancel := context.WithTimeout(s.ctx, 10*time.Second)
-	
 
 	defer cancel()
 
 	fmt.Println("Checkpoint-----2")
-	fmt.Println("" , s.server.db  )
+	fmt.Println("", s.server.db)
 	err = database.StoreMail(ctx, s.server.db, message)
 	if err != nil {
 		logger.Error("Failed to store message in database", "error", err)
 		fmt.Println("Failed to store message in the db")
 		return err
 	}
-	
+
 	fmt.Println("Stored the message successfully")
 
 	logger.Debug("Stored the message successfully")

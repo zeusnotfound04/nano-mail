@@ -101,10 +101,7 @@ func StoreMail(ctx context.Context, db *sql.DB, msg *message.Message) error {
 
 	fmt.Println("DB connection is alive")
 
-	fmt.Printf("📬 Headers Type: %T\n", msg.Headers)
-	for k, v := range msg.Headers {
-		fmt.Printf("🔹 Header: %s => %v\n", k, v)
-	}
+	
 
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {

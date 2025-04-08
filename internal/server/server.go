@@ -19,11 +19,10 @@ import (
 // 	rateLimiter limiter.ConnectionLimiter
 // }
 
-func NewServer(cfg *config.Config , db *sql.DB) *Server {
+func NewServer(cfg *config.Config, db *sql.DB) *Server {
 	if cfg == nil {
 		cfg = config.DefaultConfig()
 	}
-	
 
 	var connectionLimiter limiter.ConnectionLimiter
 
@@ -38,7 +37,7 @@ func NewServer(cfg *config.Config , db *sql.DB) *Server {
 		config:      cfg,
 		shutdown:    make(chan struct{}),
 		rateLimiter: connectionLimiter,
-		db:  db,
+		db:          db,
 	}
 }
 
@@ -95,7 +94,7 @@ func (s *Server) acceptConnections() {
 
 func (s *Server) handleConnection(conn net.Conn) {
 	defer conn.Close()
-	
+
 	session := &smtpSession{
 		server:     s,
 		conn:       conn,
@@ -124,17 +123,12 @@ func (s *Server) Stop() error {
 	}
 
 	s.wg.Wait()
-
-	if s.config.StorageBackend != nil {
-		return s.config.StorageBackend.Close()
-	}
-
 	return nil
 }
 
-func StartServer(config *config.Config ,  db *sql.DB) (*Server, error) {
-	
-	server := NewServer(config , db)
+func StartServer(config *config.Config, db *sql.DB) (*Server, error) {
+
+	server := NewServer(config, db)
 	err := server.Start()
 	if err != nil {
 		return nil, err

@@ -24,7 +24,6 @@ func main() {
 		Level: slog.LevelInfo,
 	}))
 
-
 	cfg := config.DefaultConfig()
 	cfg.Host = "0.0.0.0"
 	cfg.Port = "25"
@@ -32,30 +31,27 @@ func main() {
 	cfg.MaxMessageSize = 20 * 1024 * 1024
 	cfg.ConnectionPerIP = 5
 
-
-
 	db, err := database.ConnectDB()
-	fmt.Println("main func ka db hai ji ::::::\n" , db  )
 	if err != nil {
 		log.Fatal("Failed to connect to DB:", err)
 	}
 	// initSchema(db)
-	// defer db.Close()
+	defer db.Close() // Ensuring database connection is properly closed
 
 	logger.Info("Starting SMTP server....")
-	srv , err := server.StartServer(cfg , db)
+	srv, err := server.StartServer(cfg, db)
 	if err != nil {
-		logger.Error("Failed to start server" , "error" , err)
+		logger.Error("Failed to start server", "error", err)
 		os.Exit(1)
 	}
 
-	done := make(chan os.Signal , 1)
-	signal.Notify(done, os.Interrupt , syscall.SIGINT , syscall.SIGALRM)
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGALRM)
 
-	logger.Info("Server is running" ,
-		"host" , cfg.Host,
-		"port" , cfg.Port,
-		"domain" , cfg.Domain)
+	logger.Info("Server is running",
+		"host", cfg.Host,
+		"port", cfg.Port,
+		"domain", cfg.Domain)
 
 	<-done
 	logger.Info("Shutting down server.....")
@@ -71,22 +67,18 @@ func main() {
 		}
 	}()
 
-
-
 	if err := srv.Stop(); err != nil {
-		logger.Error("Error during server shutdown" , "error" , err)
+		logger.Error("Error during server shutdown", "error", err)
 		os.Exit(1)
 	}
 
 	logger.Info("Server shutdown complete")
 
-
-
 }
 
-//  For intial scehama intialization for the first time
+// For intial scehama intialization for the first time
 func initSchema(db *sql.DB) error {
-    query := `
+	query := `
     CREATE TABLE IF NOT EXISTS emails (
         id SERIAL PRIMARY KEY,
         sender TEXT,
@@ -97,12 +89,12 @@ func initSchema(db *sql.DB) error {
         created_at TIMESTAMPTZ DEFAULT NOW()
     );
     `
-    _, err := db.Exec(query)
+	_, err := db.Exec(query)
 
-    if err != nil {
-        return fmt.Errorf("failed to initialize schema: %w", err)
-    }
+	if err != nil {
+		return fmt.Errorf("failed to initialize schema: %w", err)
+	}
 
 	fmt.Println("Schema initialized successfully!!")
-    return nil
+	return nil
 }
