@@ -54,11 +54,23 @@ type smtpSession struct {
 }
 
 func (s *smtpSession) writeResponse(response string) error {
+	logger := s.server.config.Logger.With("client", s.remoteAddr)
+	logger.Debug("Sending response", "response", strings.TrimSpace(response))
+
 	_, err := s.writer.WriteString(response)
 	if err != nil {
+		logger.Error("Failed to write response", "error", err)
 		return err
 	}
-	return s.writer.Flush()
+
+	err = s.writer.Flush()
+	if err != nil {
+		logger.Error("Failed to flush writer", "error", err)
+		return err
+	}
+
+	logger.Debug("Response sent successfully")
+	return nil
 }
 
 func (s *smtpSession) handleHelo(cmd string, params string) {
@@ -256,25 +268,32 @@ func (s *smtpSession) processMessageData() error {
 
 func (s *smtpSession) process() {
 	logger := s.server.config.Logger.With("client", s.remoteAddr)
+	logger.Info("Starting new SMTP session")
 
 	for {
+		logger.Debug("Setting connection deadlines")
 		s.conn.SetReadDeadline(time.Now().Add(s.server.config.ReadTimeout))
 		s.conn.SetWriteDeadline(time.Now().Add(s.server.config.WriteTimeout))
 
+		logger.Debug("Waiting for client command")
 		line, err := s.reader.ReadString('\n')
 		if err != nil {
 			if err != io.EOF {
 				logger.Error("Failed to read command", "error", err)
+			} else {
+				logger.Info("Client disconnected (EOF)")
 			}
 			return
 		}
 
 		line = strings.TrimSpace(line)
-		logger.Debug("Received command", "command", line)
+		logger.Info("Received command", "command", line)
 
 		if s.state == stateData {
+			logger.Debug("Processing data content", "line", line)
 
 			if line == "." {
+				logger.Info("End of message data received, processing message")
 				err := s.processMessageData()
 				if err != nil {
 					logger.Error("Failed to process message data", "error", err)
@@ -283,9 +302,9 @@ func (s *smtpSession) process() {
 				}
 
 				s.state = stateHelo
+				logger.Info("Message accepted successfully")
 				s.writeResponse("250 OK: message accepted\r\n")
 				continue
-
 			}
 
 			if strings.HasPrefix(line, "..") {
@@ -303,7 +322,6 @@ func (s *smtpSession) process() {
 			}
 
 			continue
-
 		}
 
 		parts := strings.SplitN(line, " ", 2)
@@ -312,6 +330,8 @@ func (s *smtpSession) process() {
 		if len(parts) > 1 {
 			params = parts[1]
 		}
+
+		logger.Info("Processing command", "command", cmd, "params", params)
 
 		switch cmd {
 		case "HELO", "EHLO":
@@ -325,14 +345,15 @@ func (s *smtpSession) process() {
 		case "RSET":
 			s.handleReset()
 		case "NOOP":
+			logger.Info("NOOP command received")
 			s.writeResponse("250 OK\r\n")
 		case "QUIT":
+			logger.Info("QUIT command received, ending session")
 			s.writeResponse("221 Goodbye\r\n")
 			return
 		default:
+			logger.Warn("Unrecognized command", "command", cmd)
 			s.writeResponse("502 Command not implemented\r\n")
 		}
-
 	}
-
 }

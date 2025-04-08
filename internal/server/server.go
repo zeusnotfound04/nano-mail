@@ -106,7 +106,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 		ctx:        context.Background(),
 	}
 
-	greeting := fmt.Sprintf("200 %s ESMTP ready\r\n", s.config.Domain)
+	greeting := fmt.Sprintf("220 %s ESMTP ready\r\n", s.config.Domain)
 	if err := session.writeResponse(greeting); err != nil {
 		s.config.Logger.Error("Failed to send greeting", "error", err, "client", session.remoteAddr)
 		return

@@ -73,43 +73,52 @@ func StoreMail(ctx context.Context, db *sql.DB, msg *message.Message) error {
 		msg.From, msg.To, msg.Subject, msg.Size, msg.Date)
 
 	fmt.Println("🔌 Checking DB connection...")
+
+	// Check DB connection first
 	var err error
 	for retries := 0; retries < 3; retries++ {
+		fmt.Printf("DB connection check attempt %d/3\n", retries+1)
 		err = db.PingContext(ctx)
 		if err == nil {
-			break 
+			fmt.Println("DB connection check successful")
+			break
 		}
 		log.Printf("DB connection check failed (attempt %d/3): %v", retries+1, err)
-		time.Sleep(time.Duration(retries+1) * 500 * time.Millisecond) 
+		time.Sleep(time.Duration(retries+1) * 500 * time.Millisecond)
 	}
 
 	if err != nil {
-		
+		fmt.Println("All DB connection check attempts failed, trying to reconnect")
 		log.Println("Attempting to reestablish database connection...")
 		newDB, reconnectErr := ConnectDB()
 		if reconnectErr != nil {
+			fmt.Printf("Failed to reconnect to database: %v\n", reconnectErr)
 			log.Printf("Failed to reconnect to database: %v", reconnectErr)
-			return fmt.Errorf(" database connection unavailable: %w", err)
+			return fmt.Errorf("database connection unavailable: %w", err)
 		}
 
 		db = newDB
+		fmt.Println("Reconnected to database, checking connection...")
 
 		if pingErr := db.PingContext(ctx); pingErr != nil {
-			return fmt.Errorf(" reconnected database still unavailable: %w", pingErr)
+			fmt.Printf("Reconnected database still not responding: %v\n", pingErr)
+			return fmt.Errorf("reconnected database still unavailable: %w", pingErr)
 		}
+		fmt.Println("Reconnection successful")
 	}
 
-	fmt.Println("DB connection is alive")
+	fmt.Println("DB connection is alive, proceeding with storing message")
 
-	
-
+	// Begin transaction
+	fmt.Println("Beginning database transaction...")
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
+		fmt.Printf("Failed to begin transaction: %v\n", err)
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	
+	// Prepare insert query
 	query := `
 		INSERT INTO emails (
 			sender, recipients, subject, body, size, created_at
@@ -118,6 +127,9 @@ func StoreMail(ctx context.Context, db *sql.DB, msg *message.Message) error {
 		)
 		RETURNING id;
 	`
+	fmt.Println("Executing insert query...")
+	fmt.Printf("Parameters: sender=%s, recipients=%v, subject=%s, bodySize=%d, size=%d, date=%v\n",
+		msg.From, msg.To, msg.Subject, len(msg.Body), msg.Size, msg.Date)
 
 	var id int
 	err = tx.QueryRowContext(
@@ -132,15 +144,19 @@ func StoreMail(ctx context.Context, db *sql.DB, msg *message.Message) error {
 	).Scan(&id)
 
 	if err != nil {
-		log.Printf(" Failed to store email in database: %v", err)
+		fmt.Printf("Database insert failed: %v\n", err)
+		log.Printf("Failed to store email in database: %v", err)
 		return fmt.Errorf("failed to store the email: %w", err)
 	}
 
+	fmt.Println("Insert successful, committing transaction...")
 	if err = tx.Commit(); err != nil {
+		fmt.Printf("Failed to commit transaction: %v\n", err)
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	log.Printf(" Email stored in the DATABASE with ID: %d", id)
+	fmt.Printf("Email stored in the DATABASE with ID: %d\n", id)
+	log.Printf("Email stored in the DATABASE with ID: %d", id)
 	return nil
 }
 
