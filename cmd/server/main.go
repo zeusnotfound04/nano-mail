@@ -39,7 +39,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to connect to DB:", err)
 	}
-	initSchema(db)
+	// initSchema(db)
 	// defer db.Close()
 
 	logger.Info("Starting SMTP server....")
