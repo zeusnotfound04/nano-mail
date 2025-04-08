@@ -80,7 +80,7 @@ func StoreMail(ctx context.Context, db *sql.DB, msg *message.Message) error {
 			break 
 		}
 		log.Printf("DB connection check failed (attempt %d/3): %v", retries+1, err)
-		time.Sleep(time.Duration(retries+1) * 500 * time.Millisecond) // Backoff
+		time.Sleep(time.Duration(retries+1) * 500 * time.Millisecond) 
 	}
 
 	if err != nil {

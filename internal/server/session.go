@@ -203,7 +203,6 @@ func (s *smtpSession) processMessageData() error {
 		"recipients", strings.Join(s.recipients, ","),
 	)
 
-	// Store the message size BEFORE reading from the buffer
 	messageSize := int64(s.message.Len())
 
 	logger.Debug("Raw message data", "data", s.message.String())
