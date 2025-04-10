@@ -4,14 +4,23 @@ import { useState, useCallback } from "react";
 import BlurText from "@/components/BlurText";
 import EmailInput from "@/components/EmailInput";
 import CreateInboxButton from "@/components/CreateInboxButton";
+import { useRouter } from "next/navigation";
 
 export default function HeroSection() {
-  const [username, setUsername] = useState("");
+    const router = useRouter();
+  const [username, setUsername] = useState<string>("");
   const [blurAnimationComplete, setBlurAnimationComplete] = useState(false);
 
   const handleBlurAnimationComplete = useCallback(() => {
     setBlurAnimationComplete(true);
   }, []);
+
+  const handleCreateInbox = useCallback(() => {
+    if (username.trim()) {
+        router.push(`/user?q=${encodeURIComponent(username.toLowerCase())}`);
+      }
+  }, [username]);
+
 
   return (
     <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
@@ -35,7 +44,7 @@ export default function HeroSection() {
         </p>
         
         <EmailInput username={username} setUsername={setUsername} />
-        <CreateInboxButton />
+        <CreateInboxButton handleCreateInbox={handleCreateInbox} />
       </motion.div>
     </div>
   );

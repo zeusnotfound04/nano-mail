@@ -1,10 +1,12 @@
 "use client";
 import { motion } from "motion/react";
 
-export default function CreateInboxButton() {
+export default function CreateInboxButton( { handleCreateInbox }: { handleCreateInbox: () => void }) {
   return (
     <motion.div className="mt-6 relative group">
       <motion.button
+        type="button"
+        onClick={handleCreateInbox}
         className="px-8 py-3 bg-gradient-to-r from-[#121212] via-[#1a1a1a] to-[#121212] border border-gray-700 text-cyan-50 font-medium rounded-md transition-all duration-200 relative overflow-hidden group-hover:border-cyan-400/50 z-1"
         initial={{ boxShadow: "0 0 0 rgba(0,0,0,0)" }}
         whileHover={{ 
