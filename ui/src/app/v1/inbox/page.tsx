@@ -48,7 +48,7 @@ export default function InboxPage() {
     return readEmails;
   };
 
-  // Save read email to local storage
+
   const saveReadEmail = (emailId: string | number) => {
     if (!decodedUsername) return;
 
@@ -58,7 +58,6 @@ export default function InboxPage() {
         const newReadEmails = [...readEmails, emailIdStr];
         setReadEmails(newReadEmails);
         
-        // Save to localStorage
         localStorage.setItem(
           `read_emails_${decodedUsername}`,
           JSON.stringify(newReadEmails)
@@ -69,22 +68,20 @@ export default function InboxPage() {
     }
   };
 
-  // Check if an email is read
   const isEmailRead = (emailId: string | number): boolean => {
     return readEmails.includes(String(emailId));
   };
 
-  // Function to fetch emails
   const fetchEmails = async (username: string) => {
     setLoading(true);
     try {
       const fetchedEmails = await searchEmails(username);
       const transformedEmails = fetchedEmails.map((email) => ({
-        id: String(email.id), // Convert ID to string to match Email interface
+        id: String(email.id), 
         from: email.mail_from || "",
         subject: email.subject || "",
         content: email.data?.text || "",
-        htmlContent: email.data?.text_as_html || "", // Add HTML content
+        htmlContent: email.data?.text_as_html || "", 
         timestamp: new Date(email.date),
         read: isEmailRead(email.id),
       }));
@@ -100,7 +97,6 @@ export default function InboxPage() {
 
           // Mark as read
           if (!foundEmail.read) {
-            // Update the email in our local state
             foundEmail.read = true;
             setEmails(
               transformedEmails.map((email) =>
@@ -110,7 +106,6 @@ export default function InboxPage() {
               )
             );
 
-            // Save to localStorage
             saveReadEmail(selectedEmailId);
           }
         }
@@ -123,24 +118,20 @@ export default function InboxPage() {
     }
   };
 
-  // Function to handle refresh button click
   const handleRefresh = () => {
     if (refreshing || loading) return;
     setRefreshing(true);
     fetchEmails(decodedUsername);
   };
 
-  // Effect to handle mobile view changes when an email is selected
   useEffect(() => {
     if (selectedEmail) {
       setMobileView("detail");
     }
   }, [selectedEmail]);
 
-  // Effect to handle screen size changes
   useEffect(() => {
     const handleResize = () => {
-      // Reset to list view on larger screens
       if (window.innerWidth >= 768) {
         setMobileView("list");
       }
@@ -150,7 +141,6 @@ export default function InboxPage() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Decode the query parameter when the component mounts or query changes
   useEffect(() => {
     if (!encodedQuery) {
       router.push("/");
@@ -171,13 +161,10 @@ export default function InboxPage() {
     const email = emails.find((e) => e.id === emailId);
     if (email) {
       setSelectedEmail(email);
-      // Update URL with email ID
       const url = `/v1/inbox?q=${encodedQuery}&id=${emailId}`;
       router.push(url, { scroll: false });
 
-      // Mark as read
       if (!email.read) {
-        // Update locally
         email.read = true;
         setEmails(
           emails.map((e) =>
@@ -185,7 +172,6 @@ export default function InboxPage() {
           )
         );
 
-        // Save to localStorage
         saveReadEmail(emailId);
       }
 
@@ -204,7 +190,7 @@ export default function InboxPage() {
       <Navbar />
 
       <main className="relative min-h-screen w-full pt-20 md:pt-24 pb-16 px-3 md:px-4">
-        {/* Background elements */}
+
         <AnimatedBackground
           auroraColors={["#00D8FF", "#427F39", "#00D8FF"]}
           primaryParticleColor="#00D8FF"
@@ -216,9 +202,8 @@ export default function InboxPage() {
         />
         <EmailParticleBackground density={30} />
 
-        {/* Main content */}
         <div className="container mx-auto max-w-5xl z-10 relative">
-          {/* Header with email address - z-10 brings it forward */}
+          
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -295,7 +280,6 @@ export default function InboxPage() {
             )}
           </motion.div>
 
-          {/* Mobile view toggle buttons - only visible on small screens */}
           {!loading && selectedEmail && (
             <div className="md:hidden flex justify-center mb-4">
               <div className="inline-flex rounded-md bg-black/40 backdrop-blur-md border border-[#00D8FF]/20 p-1">
@@ -351,12 +335,10 @@ export default function InboxPage() {
             </div>
           )}
 
-          {/* Loading animation or Email interface */}
           {loading ? (
             <LoadingAnimation />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Email list - Full width on mobile or when in list view, 1/3 width on desktop */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -372,7 +354,6 @@ export default function InboxPage() {
                 />
               </motion.div>
 
-              {/* Email detail - Full width on mobile or when in detail view, 2/3 width on desktop */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -388,7 +369,6 @@ export default function InboxPage() {
         </div>
       </main>
 
-      {/* Footer - made it more visible with background */}
       <motion.footer
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
