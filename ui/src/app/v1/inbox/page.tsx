@@ -10,11 +10,7 @@ import CopyEmailButton from "@/components/CopyEmailButton";
 import EmailParticleBackground from "@/components/EmailParticleBackground";
 import LoadingAnimation from "@/components/LoadingAnimation";
 import { motion } from "motion/react";
-
-// Sample emails for demonstration
-const generateSampleEmails = (username: string): Email[] => [
-  // ...existing code...
-];
+import { searchEmails } from "@/actions/getEmails";
 
 export default function InboxPage() {
   const searchParam = useSearchParams();
@@ -27,6 +23,40 @@ export default function InboxPage() {
   const [loading, setLoading] = useState(true);
   // For mobile view toggling
   const [mobileView, setMobileView] = useState<"list" | "detail">("list");
+  
+  // Get read emails from local storage
+  const getReadEmails = (): string[] => {
+    if (typeof window === 'undefined') return [];
+    
+    try {
+      const storedReadEmails = localStorage.getItem(`read_emails_${decodedUsername}`);
+      return storedReadEmails ? JSON.parse(storedReadEmails) : [];
+    } catch (error) {
+      console.error('Error reading from localStorage', error);
+      return [];
+    }
+  };
+
+  // Save read email to local storage
+  const saveReadEmail = (emailId: string | number) => {
+    if (typeof window === 'undefined' || !decodedUsername) return;
+    
+    try {
+      const readEmails = getReadEmails();
+      const emailIdStr = String(emailId);
+      if (!readEmails.includes(emailIdStr)) {
+        readEmails.push(emailIdStr);
+        localStorage.setItem(`read_emails_${decodedUsername}`, JSON.stringify(readEmails));
+      }
+    } catch (error) {
+      console.error('Error saving to localStorage', error);
+    }
+  };
+
+  // Check if an email is read
+  const isEmailRead = (emailId: string | number): boolean => {
+    return getReadEmails().includes(String(emailId));
+  };
   
   // Effect to handle mobile view changes when an email is selected
   useEffect(() => {
@@ -61,29 +91,42 @@ export default function InboxPage() {
     if (!decoded) {
       router.push("/");
     } else {
-      // Simulate loading delay for demo purposes
       setLoading(true);
-      setTimeout(() => {
-        // Generate sample emails for the demo
-        const sampleEmails = generateSampleEmails(decoded);
-        setEmails(sampleEmails);
+      searchEmails(decoded).then(fetchedEmails => {
+
+        console.log("Fetched emails:::🥳🥳", fetchedEmails);
+        const transformedEmails = fetchedEmails.map(email => ({
+          id: String(email.id), // Convert ID to string to match Email interface
+          from: email.mail_from || "",
+          subject: email.subject || "",
+          content: email.data?.text || "",
+          htmlContent: email.data?.text_as_html || "", // Add HTML content
+          timestamp: new Date(email.date),
+          read: isEmailRead(email.id)
+        }));
         
-        // If there's an email ID in the URL, find and select that email
+        setEmails(transformedEmails);
+        
         if (selectedEmailId) {
-          const foundEmail = sampleEmails.find(email => email.id === selectedEmailId);
+          const foundEmail = transformedEmails.find(email => email.id === selectedEmailId);
           if (foundEmail) {
             setSelectedEmail(foundEmail);
+            
             // Mark as read
             if (!foundEmail.read) {
+              // Update the email in our local state
               foundEmail.read = true;
-              setEmails(sampleEmails.map(email => 
+              setEmails(transformedEmails.map(email => 
                 email.id === selectedEmailId ? {...email, read: true} : email
               ));
+              
+              // Save to localStorage
+              saveReadEmail(selectedEmailId);
             }
           }
         }
         setLoading(false);
-      }, 2000); // 2 seconds loading for demo
+      });
     }
   }, [encodedQuery, router, selectedEmailId]);
 
@@ -97,20 +140,22 @@ export default function InboxPage() {
       
       // Mark as read
       if (!email.read) {
+        // Update locally
         email.read = true;
         setEmails(emails.map(e => 
           e.id === emailId ? {...e, read: true} : e
         ));
+        
+        // Save to localStorage
+        saveReadEmail(emailId);
       }
       
-      // On mobile, switch to detail view when an email is selected
       if (window.innerWidth < 768) {
         setMobileView("detail");
       }
     }
   };
 
-  // Function to go back to the email list on mobile
   const handleBackToList = () => {
     setMobileView("list");
   };

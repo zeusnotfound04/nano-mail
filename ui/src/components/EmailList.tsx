@@ -8,6 +8,7 @@ export interface Email {
   from: string;
   subject: string;
   content: string;
+  htmlContent?: string; // Add HTML content field
   timestamp: Date;
   read: boolean;
 }

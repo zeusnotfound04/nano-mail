@@ -3,7 +3,16 @@ import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { format } from "date-fns";
 import { Email } from "./EmailList";
+import { Roboto  , Poppins} from "next/font/google";
 
+const roboto = Roboto({ 
+  weight: "700",
+  subsets: ["latin"],
+});
+const poppins = Poppins({
+  weight: "700",
+  subsets: ["latin"],
+});
 interface EmailDetailProps {
   email: Email | null;
   onBack?: () => void;
@@ -11,9 +20,10 @@ interface EmailDetailProps {
 
 const EmailDetail: React.FC<EmailDetailProps> = ({ email, onBack }) => {
   const [isMobile, setIsMobile] = useState(false);
-
+  const [displayMode, setDisplayMode] = useState<'html' | 'text'>('html');
+  console.log("HTML RENDERED KARRNI HAI :", email?.htmlContent);
   useEffect(() => {
-    // Check if we're on mobile
+    
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
@@ -22,6 +32,15 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ email, onBack }) => {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+
+  useEffect(() => {
+    if (email && email.htmlContent) {
+      setDisplayMode('html');
+    } else {
+      setDisplayMode('text');
+    }
+  }, [email]);
 
   if (!email) {
     return (
@@ -91,6 +110,23 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ email, onBack }) => {
             <span className="hidden xs:inline">Inbox</span>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
+            
+            {email.htmlContent && (
+              <div className="flex items-center mr-2 bg-black/40 rounded-lg overflow-hidden border border-white/10">
+                <button 
+                  onClick={() => setDisplayMode('html')} 
+                  className={`px-2 py-0.5 text-xs ${displayMode === 'html' ? 'bg-[#00D8FF]/30 text-white' : 'text-white/60'}`}
+                >
+                  HTML
+                </button>
+                <button 
+                  onClick={() => setDisplayMode('text')} 
+                  className={`px-2 py-0.5 text-xs ${displayMode === 'text' ? 'bg-[#00D8FF]/30 text-white' : 'text-white/60'}`}
+                >
+                  Text
+                </button>
+              </div>
+            )}
             <motion.button 
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
@@ -112,7 +148,7 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ email, onBack }) => {
           </div>
         </div>
         
-        <h2 className="text-base sm:text-xl text-white font-medium mb-2 sm:mb-3 break-words">{email.subject}</h2>
+        <h2 className="text-base sm:text-xl text-white font-medium mb-2 sm:mb-3 break-words"><span className={`font-bold text-[#01a0a5] ${poppins.className}`}>SUBJECT : </span> {email.subject}</h2>
         
         <div className="flex justify-between items-center border-t border-[#00D8FF]/10 pt-2 sm:pt-3">
           <div className="flex items-center gap-2 sm:gap-3">
@@ -140,7 +176,17 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ email, onBack }) => {
       
       <div className="p-3 sm:p-6 flex-grow overflow-y-auto custom-scrollbar">
         <div className="prose prose-invert prose-sm max-w-none">
-          <p className="text-white/90 text-xs sm:text-sm whitespace-pre-line leading-relaxed">{email.content}</p>
+          
+          {displayMode === 'html' && email.htmlContent ? (
+            <div 
+              className="text-white/90 email-html-content" 
+              dangerouslySetInnerHTML={{ __html: email.htmlContent }}
+            />
+          ) : (
+            <p className="text-white/90 text-xs sm:text-sm whitespace-pre-line leading-relaxed">
+              {email.content}
+            </p>
+          )}
           
           {/* Decorative elements */}
           <div className="absolute bottom-10 right-10 w-24 sm:w-40 h-24 sm:h-40 rounded-full bg-gradient-to-tr from-[#00D8FF]/10 to-transparent blur-3xl opacity-30 pointer-events-none"></div>
@@ -193,6 +239,32 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ email, onBack }) => {
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: rgba(0, 216, 255, 0.5);
+        }
+        
+        /* Email HTML content styling */
+        .email-html-content {
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 0.875rem;
+        }
+        
+        .email-html-content a {
+          color: #00D8FF;
+          text-decoration: underline;
+        }
+        
+        .email-html-content img {
+          max-width: 100%;
+          height: auto;
+        }
+        
+        /* Additional email content fixes */
+        .email-html-content table {
+          max-width: 100%;
+          border-collapse: collapse;
+        }
+        
+        .email-html-content p {
+          margin-bottom: 0.75rem;
         }
       `}</style>
     </motion.div>
