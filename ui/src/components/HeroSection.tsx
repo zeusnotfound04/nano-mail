@@ -5,6 +5,7 @@ import BlurText from "@/components/BlurText";
 import EmailInput from "@/components/EmailInput";
 import CreateInboxButton from "@/components/CreateInboxButton";
 import { useRouter } from "next/navigation";
+import { encodeQueryParam } from "@/lib/queryEncoding";
 
 export default function HeroSection() {
     const router = useRouter();
@@ -17,9 +18,11 @@ export default function HeroSection() {
 
   const handleCreateInbox = useCallback(() => {
     if (username.trim()) {
-        router.push(`/user?q=${encodeURIComponent(username.toLowerCase())}`);
+        // Encode the username before adding it to the URL
+        const encodedUsername = encodeQueryParam(username.toLowerCase());
+        router.push(`/v1/inbox?q=${encodedUsername}`);
       }
-  }, [username]);
+  }, [username, router]);
 
 
   return (
