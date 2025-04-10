@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
 
 interface EmailParticleBackgroundProps {
@@ -9,8 +9,29 @@ interface EmailParticleBackgroundProps {
 const EmailParticleBackground: React.FC<EmailParticleBackgroundProps> = ({ 
   density = 20
 }) => {
-  const particles = React.useMemo(() => {
-    return Array.from({ length: density }, (_, i) => ({
+  // Initialize with empty arrays to avoid hydration mismatches
+  const [particles, setParticles] = useState<Array<{
+    id: number;
+    x: number;
+    y: number;
+    size: number;
+    duration: number;
+    delay: number;
+  }>>([]);
+  
+  const [envelopeSymbols, setEnvelopeSymbols] = useState<Array<{
+    id: number;
+    x: number;
+    y: number;
+    size: number;
+    duration: number;
+    delay: number;
+  }>>([]);
+
+  // Generate particles only on the client side to avoid hydration mismatch
+  useEffect(() => {
+    // Generate particles once we're on the client
+    const newParticles = Array.from({ length: density }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
       y: Math.random() * 100,
@@ -18,7 +39,20 @@ const EmailParticleBackground: React.FC<EmailParticleBackgroundProps> = ({
       duration: Math.random() * 20 + 10,
       delay: Math.random() * 10
     }));
-  }, [density]);
+    
+    // Generate envelope symbols
+    const newEnvelopeSymbols = Array.from({ length: 5 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: Math.random() * 20 + 10,
+      duration: Math.random() * 10 + 20,
+      delay: Math.random() * 5
+    }));
+    
+    setParticles(newParticles);
+    setEnvelopeSymbols(newEnvelopeSymbols);
+  }, [density]); // Only re-run if density changes
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
@@ -47,14 +81,14 @@ const EmailParticleBackground: React.FC<EmailParticleBackgroundProps> = ({
       ))}
       
       {/* Decorative envelope symbols */}
-      {Array.from({ length: 5 }).map((_, i) => (
+      {envelopeSymbols.map((symbol) => (
         <motion.div
-          key={`envelope-${i}`}
+          key={`envelope-${symbol.id}`}
           className="absolute text-[#427F39] opacity-10"
           style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            fontSize: `${Math.random() * 20 + 10}px`,
+            left: `${symbol.x}%`,
+            top: `${symbol.y}%`,
+            fontSize: `${symbol.size}px`,
           }}
           initial={{ opacity: 0, scale: 0 }}
           animate={{ 
@@ -63,8 +97,8 @@ const EmailParticleBackground: React.FC<EmailParticleBackgroundProps> = ({
             rotate: [0, 10, 0, -10, 0],
           }}
           transition={{
-            duration: Math.random() * 10 + 20,
-            delay: Math.random() * 5,
+            duration: symbol.duration,
+            delay: symbol.delay,
             repeat: Infinity,
             ease: "easeInOut",
           }}

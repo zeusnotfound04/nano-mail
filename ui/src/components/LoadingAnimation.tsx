@@ -1,8 +1,30 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
 
+interface CircleProps {
+  id: number;
+  top: string;
+  left: string;
+  delay: number;
+}
+
 const LoadingAnimation: React.FC = () => {
+  // State to hold client-side generated circle positions
+  const [circles, setCircles] = useState<CircleProps[]>([]);
+
+  // Generate circle positions on client-side only to avoid hydration mismatch
+  useEffect(() => {
+    const generatedCircles = Array.from({ length: 5 }).map((_, i) => ({
+      id: i,
+      top: `${50 + 35 * Math.sin(i * (2 * Math.PI / 5))}%`,
+      left: `${50 + 35 * Math.cos(i * (2 * Math.PI / 5))}%`,
+      delay: i * 0.2
+    }));
+    
+    setCircles(generatedCircles);
+  }, []);
+
   return (
     <div className="w-full h-[500px] bg-black/40 backdrop-blur-md rounded-xl border border-[#00D8FF]/20 overflow-hidden shadow-lg flex flex-col items-center justify-center">
       <div className="relative w-32 h-32 mb-8">
@@ -53,14 +75,14 @@ const LoadingAnimation: React.FC = () => {
           }}
         />
         
-        {/* Smaller decorative circles */}
-        {Array.from({ length: 5 }).map((_, i) => (
+        {/* Smaller decorative circles - only rendered client-side */}
+        {circles.map((circle) => (
           <motion.div
-            key={i}
+            key={circle.id}
             className="absolute w-3 h-3 rounded-full bg-[#00D8FF]"
             style={{
-              top: `${50 + 35 * Math.sin(i * (2 * Math.PI / 5))}%`,
-              left: `${50 + 35 * Math.cos(i * (2 * Math.PI / 5))}%`,
+              top: circle.top,
+              left: circle.left,
             }}
             animate={{
               scale: [0, 1, 0],
@@ -68,7 +90,7 @@ const LoadingAnimation: React.FC = () => {
             }}
             transition={{
               duration: 2,
-              delay: i * 0.2,
+              delay: circle.delay,
               repeat: Infinity,
               repeatDelay: 1,
             }}
