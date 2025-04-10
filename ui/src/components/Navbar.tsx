@@ -208,37 +208,14 @@ export default function Navbar({ className }: { className?: string }) {
     
     return (
       <div
-        className={cn("fixed top-5 inset-x-0 max-w-3xl mx-auto z-50", className)}
+        className={cn("fixed top-5 inset-x-0 max-w-xl mx-auto z-50", className)}
       >
         <Menu setActive={setActive}>
           <NanoMailLogo />
           
           <div className="h-6 border-l border-white/20 mx-2"></div>
           
-          <MenuItem 
-            setActive={setActive} 
-            active={active} 
-            item="Mail" 
-            icon={<MailIcon />}
-          >
-            <div className="flex flex-col space-y-5 min-w-[280px]">
-              <MailServiceItem
-                title="Inbox"
-                href="/inbox"
-                description="View and manage received emails"
-                icon={<InboxIcon />}
-              />
-              <MailServiceItem
-                title="Compose"
-                href="/compose"
-                description="Write and send new messages"
-                icon={<ComposeMail />}
-              />
-              <div className="border-t border-white/10 pt-3 mt-2">
-                <HoveredLink href="/mail/settings" icon={<SettingsIcon />}>Mail Settings</HoveredLink>
-              </div>
-            </div>
-          </MenuItem>
+          
           
           <MenuItem 
             setActive={setActive} 
@@ -317,35 +294,27 @@ export default function Navbar({ className }: { className?: string }) {
         
             </div>
           </MenuItem>
-
-          <MenuItem 
-            setActive={setActive} 
-            active={active} 
-            item="GitHub"
-            icon={<GithubIcon />}
+          
+          <Link
+            href="/faq"
+            className="relative group"
           >
-            <div className="flex flex-col space-y-3 text-sm min-w-[200px]">
-              <h4 className="text-base font-bold text-white mb-2">Support the Project</h4>
-              <div className="bg-gradient-to-r from-[#00D8FF]/20 to-[#427F39]/20 rounded-lg p-4 mb-2">
-                <p className="text-gray-300 mb-3">If you find NanoMail useful, please consider giving our repository a star!</p>
-                <a 
-                  href="https://github.com/zeusnotfound04/nano-mail" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 text-white py-2 px-4 rounded-md transition-colors duration-300"
-                >
-                  <GithubIcon />
-                  <span>Drop a Star ⭐</span>
-                </a>
-              </div>
-              <HoveredLink href="https://github.com/zeusnotfound04/nano-mailissues" target="_blank" rel="noopener noreferrer" icon={<GithubIcon />}>
-                Report Issues
-              </HoveredLink>
-              <HoveredLink href="https://github.com/zeusnotfound04/nano-mailnano-mail/blob/main/README.md" target="_blank" rel="noopener noreferrer" icon={<GithubIcon />}>
-                Documentation
-              </HoveredLink>
-            </div>
-          </MenuItem>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.2 }}
+              className="cursor-pointer flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10"
+            >
+              <span className="text-[#11ba93]">
+                
+              </span>
+              <motion.p
+                className="text-white/90 group-hover:text-[#00D8FF] transition-colors duration-300"
+              >
+                FAQ
+              </motion.p>
+            </motion.div>
+            <div className="absolute inset-0 -z-10 h-full w-full rounded-full bg-gradient-to-br from-[#00D8FF]/20 via-transparent to-[#427F39]/20 opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-100"></div>
+          </Link>
 
         </Menu>
       </div>

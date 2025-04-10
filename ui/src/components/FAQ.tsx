@@ -25,10 +25,10 @@ function FAQItem({ question, answer, index }: FAQItemProps) {
       }}
       className={cn(
         "group rounded-lg border-[0.5px] border-gray-800/50",
-        "transition-all duration-200 ease-in-out",
+        "transition-all duration-300 ease-in-out backdrop-blur-sm",
         isOpen
-          ? "bg-linear-to-br from-white/5 via-white to-white/5"
-          : "hover:bg-white/[0.02]"
+          ? "bg-gradient-to-br from-white/5 via-white/[0.03] to-white/5 shadow-lg shadow-[#00D8FF]/5"
+          : "hover:bg-white/[0.02] hover:border-[#00D8FF]/20"
       )}
     >
       <button
@@ -38,9 +38,9 @@ function FAQItem({ question, answer, index }: FAQItemProps) {
       >
         <h3
           className={cn(
-            "text-base font-medium transition-colors duration-200 text-left",
+            "text-base font-bold transition-colors duration-200 text-left",
             "text-gray-300",
-            isOpen && "text-white"
+            isOpen ? "text-[#11ba93]" : "group-hover:text-white"
           )}
         >
           {question}
@@ -57,7 +57,7 @@ function FAQItem({ question, answer, index }: FAQItemProps) {
           className={cn(
             "p-0.5 rounded-full shrink-0",
             "transition-colors duration-200",
-            isOpen ? "text-primary" : "text-gray-500"
+            isOpen ? "text-[#11ba93]" : "text-gray-500 group-hover:text-[#00D8FF]/70"
           )}
         >
           <ChevronDown className="h-4 w-4" />
@@ -108,6 +108,12 @@ function FAQItem({ question, answer, index }: FAQItemProps) {
               >
                 {answer}
               </motion.p>
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2, duration: 0.3 }}
+                className="w-full h-[1px] mt-3 bg-gradient-to-r from-transparent via-[#00D8FF]/30 to-transparent"
+              />
             </div>
           </motion.div>
         )}
@@ -151,9 +157,45 @@ function Faq() {
   ];
 
   return (
-    <section className="py-16 w-full bg-linear-to-b from-transparent via-white/[0.02] to-transparent">
-      <div className="container px-4 mx-auto">
-        <div className="max-w-2xl mx-auto space-y-2">
+    <section className="py-16 w-full bg-transparent relative">
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#00D8FF]/[0.03] to-transparent pointer-events-none" />
+      
+      {/* Decorative elements */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.3 }}
+        transition={{ duration: 1.5 }}
+        className="absolute -top-10 left-1/4 w-60 h-60 bg-[#427F39]/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.2 }}
+        transition={{ duration: 1.5, delay: 0.5 }}
+        className="absolute -bottom-20 right-1/4 w-80 h-80 bg-[#00D8FF]/10 rounded-full blur-3xl pointer-events-none"
+      />
+      
+      <div className="container px-4 mx-auto relative">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="max-w-md mx-auto text-center mb-12"
+        >
+          <h2 className="text-3xl font-bold text-white mb-4">Frequently Asked Questions</h2>
+          <p className="text-gray-400">Everything you need to know about our temporary email service</p>
+        </motion.div>
+        
+        <div className="max-w-2xl mx-auto space-y-3 relative">
+          {/* Email icon decoration */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 0.7, x: 0 }}
+            transition={{ delay: 0.4, duration: 0.7 }}
+            className="absolute -left-16 top-10 text-[#00D8FF] hidden lg:block"
+          >
+         
+          </motion.div>
+          
           {faqs.map((faq, index) => (
             <FAQItem key={index} {...faq} index={index} />
           ))}
