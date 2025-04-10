@@ -18,7 +18,6 @@ export default function HeroSection() {
 
   const handleCreateInbox = useCallback(() => {
     if (username.trim()) {
-        // Encode the username before adding it to the URL
         const encodedUsername = encodeQueryParam(username.toLowerCase());
         router.push(`/v1/inbox?q=${encodedUsername}`);
       }
