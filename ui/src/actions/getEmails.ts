@@ -1,16 +1,15 @@
 
 "use server";
-//@ts-ignore
+
 import { Attachment, simpleParser } from "mailparser";
-// app/actions/searchEmails.ts
+
 
 
 import {prisma} from "@/lib/prisma";
 import { unstable_cache } from "next/cache"; 
-import type { Email } from "@/types";
+
 import { cleanSenderEmail } from "./mailParser";
 
-// Define a type that matches what Prisma returns
 type PrismaEmail = {
   id: number;
   sender: string | null;

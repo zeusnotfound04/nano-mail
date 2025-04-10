@@ -12,6 +12,7 @@
     "@prisma/client": "^6.6.0",
     "@react-spring/web": "^9.7.5",
     "@tabler/icons-react": "^3.31.0",
+    "@types/mailparser": "^3.4.5",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.487.0",
