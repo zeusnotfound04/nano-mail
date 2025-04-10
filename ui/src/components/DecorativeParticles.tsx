@@ -38,9 +38,10 @@ export default function DecorativeParticles({ isInputFocused, pulseEffect }: Dec
           repeat: isInputFocused ? 1 : pulseEffect ? 1 : 0,
           repeatDelay: 1
         }}
+        suppressHydrationWarning
       />
     ))
   ), [isInputFocused, pulseEffect]);
 
-  return <>{particles}</>;
+  return <div suppressHydrationWarning>{particles}</div>;
 }

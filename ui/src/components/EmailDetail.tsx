@@ -21,7 +21,6 @@ interface EmailDetailProps {
 const EmailDetail: React.FC<EmailDetailProps> = ({ email, onBack }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [displayMode, setDisplayMode] = useState<'html' | 'text'>('html');
-  console.log("HTML RENDERED KARRNI HAI :", email?.htmlContent);
   useEffect(() => {
     
     const checkMobile = () => {
@@ -90,7 +89,7 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ email, onBack }) => {
       className="w-full bg-black/40 backdrop-blur-md rounded-xl border border-[#00D8FF]/30 overflow-hidden shadow-lg shadow-black/20 flex flex-col h-full"
     >
       <div className="p-3 sm:p-5 border-b border-[#00D8FF]/30 bg-black/60">
-        {/* Back button for mobile view */}
+        
         {isMobile && onBack && (
           <motion.button 
             whileTap={{ scale: 0.95 }}

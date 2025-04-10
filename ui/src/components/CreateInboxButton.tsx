@@ -19,7 +19,6 @@ export default function CreateInboxButton( { handleCreateInbox }: { handleCreate
           boxShadow: "0 3px 8px rgba(0,0,0,0.4)"
         }}
       >
-        {/* Data flow lines */}
         <motion.div 
           className="absolute inset-0 overflow-hidden rounded-md pointer-events-none"
           style={{ zIndex: 0 }}

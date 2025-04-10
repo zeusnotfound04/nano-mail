@@ -40,9 +40,10 @@ export default function EmailInput({ username, setUsername }: EmailInputProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay: 0.7 }}
-      className="w-full max-w-md mx-auto mt-8 relative"
+      className="w-full max-w-md mx-auto mt-4 sm:mt-8 relative"
+      suppressHydrationWarning
     >
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0" suppressHydrationWarning>
         <CyberLines dataPulse={dataPulse} />
         
         {[...Array(4)].map((_, i) => (
@@ -63,6 +64,7 @@ export default function EmailInput({ username, setUsername }: EmailInputProps) {
               ease: "easeInOut",
               delay: i * 0.1,
             }}
+            suppressHydrationWarning
           />
         ))}
       </div>
@@ -149,7 +151,7 @@ export default function EmailInput({ username, setUsername }: EmailInputProps) {
       
       <div 
         className={cn(
-          "flex items-center border border-opacity-40 rounded-lg bg-[#121212] bg-opacity-80 overflow-hidden transition-all duration-200 backdrop-blur-sm relative z-10",
+          "flex flex-col sm:flex-row items-stretch sm:items-center border border-opacity-40 rounded-lg bg-[#121212] bg-opacity-80 overflow-hidden transition-all duration-200 backdrop-blur-sm relative z-10",
           isInputFocused 
             ? "border-cyan-400 shadow-[0_0_8px_rgba(0,216,255,0.3)]" 
             : "border-gray-700 hover:border-gray-500 hover:shadow-[0_0_5px_rgba(40,40,40,0.4)]"
@@ -178,7 +180,7 @@ export default function EmailInput({ username, setUsername }: EmailInputProps) {
           className="flex-1 bg-transparent py-3 px-4 text-white placeholder-gray-500 outline-none relative z-10"
           aria-label="Enter your desired username"
         />
-        <div className="bg-[#1a1a1a] py-3 px-3 text-gray-300 font-bold border-l border-gray-700 relative z-10">
+        <div className="bg-[#1a1a1a] py-2 sm:py-3 px-3 text-sm sm:text-base text-center text-gray-300 font-bold border-t sm:border-t-0 sm:border-l border-gray-700 relative z-10">
           @zeus.nanomail.live
         </div>
       </div>

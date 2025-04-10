@@ -53,6 +53,13 @@ const BlurText: React.FC<BlurTextProps> = ({
     { filter: 'blur(0px)', opacity: 1, transform: 'translate3d(0,0,0)' },
   ];
 
+  // Use client-only rendering to avoid hydration mismatches
+  const [isClient, setIsClient] = useState(false);
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   useEffect(() => {
     // If animation is already completed, don't re-observe
     if (animationCompleted) return;
@@ -101,40 +108,57 @@ const BlurText: React.FC<BlurTextProps> = ({
     }))
   );
 
-  // Function to determine if a word should be highlighted
   const getWordStyle = (word: string) => {
-    // Trim the word to handle any whitespace and punctuation
     const trimmedWord = word.trim().replace(/[.,!?;:]$/, '');
     
-    // Check if any of the highlight words match (case-insensitive)
     const highlightWord = highlightWords.find(hw => 
       hw.word.toLowerCase() === trimmedWord.toLowerCase()
     );
     
-    // Return the color style if there's a match, otherwise empty object
     return highlightWord ? { color: highlightWord.color } : {};
   };
 
   return (
-    <p ref={ref} className={`blur-text ${className} flex flex-wrap justify-center`}>
-      {springs.map((props: any, index : any) => {
-        const element = elements[index];
-        const additionalStyle = animateBy === 'words' ? getWordStyle(element) : {};
-        
-        return (
-          <AnimatedSpan
-            key={index}
-            style={{
-              ...props,
-              ...additionalStyle
-            }}
-            className="inline-block will-change-[transform,filter,opacity]"
-          >
-            {element === ' ' ? '\u00A0' : element}
-            {animateBy === 'words' && index < elements.length - 1 && '\u00A0'}
-          </AnimatedSpan>
-        );
-      })}
+    <p ref={ref} className={`blur-text ${className} flex flex-wrap justify-center`} suppressHydrationWarning>
+      {isClient ? 
+        springs.map((props: any, index : any) => {
+          const element = elements[index];
+          const additionalStyle = animateBy === 'words' ? getWordStyle(element) : {};
+          
+          return (
+            <AnimatedSpan
+              key={index}
+              style={{
+                ...props,
+                ...additionalStyle
+              }}
+              className="inline-block will-change-[transform,filter,opacity]"
+              suppressHydrationWarning
+            >
+              {element === ' ' ? '\u00A0' : element}
+              {animateBy === 'words' && index < elements.length - 1 && '\u00A0'}
+            </AnimatedSpan>
+          );
+        })
+        : 
+        elements.map((element, index) => {
+          const additionalStyle = animateBy === 'words' ? getWordStyle(element) : {};
+          return (
+            <span
+              key={index}
+              style={{
+                ...defaultFrom,
+                ...additionalStyle,
+                display: 'inline-block'
+              }}
+              suppressHydrationWarning
+            >
+              {element === ' ' ? '\u00A0' : element}
+              {animateBy === 'words' && index < elements.length - 1 && '\u00A0'}
+            </span>
+          );
+        })
+      }
     </p>
   );
 };

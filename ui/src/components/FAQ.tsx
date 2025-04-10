@@ -186,7 +186,7 @@ function Faq() {
         </motion.div>
         
         <div className="max-w-2xl mx-auto space-y-3 relative">
-          {/* Email icon decoration */}
+          
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 0.7, x: 0 }}

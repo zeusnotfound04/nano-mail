@@ -9,7 +9,6 @@ interface EmailParticleBackgroundProps {
 const EmailParticleBackground: React.FC<EmailParticleBackgroundProps> = ({ 
   density = 20
 }) => {
-  // Initialize with empty arrays to avoid hydration mismatches
   const [particles, setParticles] = useState<Array<{
     id: number;
     x: number;
@@ -28,9 +27,7 @@ const EmailParticleBackground: React.FC<EmailParticleBackgroundProps> = ({
     delay: number;
   }>>([]);
 
-  // Generate particles only on the client side to avoid hydration mismatch
   useEffect(() => {
-    // Generate particles once we're on the client
     const newParticles = Array.from({ length: density }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
@@ -52,10 +49,10 @@ const EmailParticleBackground: React.FC<EmailParticleBackgroundProps> = ({
     
     setParticles(newParticles);
     setEnvelopeSymbols(newEnvelopeSymbols);
-  }, [density]); // Only re-run if density changes
+  }, [density]); 
 
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0" suppressHydrationWarning>
       {particles.map((particle) => (
         <motion.div
           key={particle.id}
@@ -77,10 +74,10 @@ const EmailParticleBackground: React.FC<EmailParticleBackgroundProps> = ({
             repeat: Infinity,
             ease: "easeInOut",
           }}
+          suppressHydrationWarning
         />
       ))}
       
-      {/* Decorative envelope symbols */}
       {envelopeSymbols.map((symbol) => (
         <motion.div
           key={`envelope-${symbol.id}`}
@@ -102,13 +99,13 @@ const EmailParticleBackground: React.FC<EmailParticleBackgroundProps> = ({
             repeat: Infinity,
             ease: "easeInOut",
           }}
+          suppressHydrationWarning
         >
           ✉
         </motion.div>
       ))}
 
-      {/* Digital circuit-like lines */}
-      <div className="absolute inset-0">
+      <div className="absolute inset-0" suppressHydrationWarning>
         <svg width="100%" height="100%" className="opacity-10">
           <motion.path
             d="M0,50 Q25,25 50,50 T100,50"
@@ -118,6 +115,7 @@ const EmailParticleBackground: React.FC<EmailParticleBackgroundProps> = ({
             initial={{ pathLength: 0 }}
             animate={{ pathLength: 1 }}
             transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+            suppressHydrationWarning
           />
           <motion.path
             d="M0,70 C30,60 70,80 100,70"
@@ -127,6 +125,7 @@ const EmailParticleBackground: React.FC<EmailParticleBackgroundProps> = ({
             initial={{ pathLength: 0 }}
             animate={{ pathLength: 1 }}
             transition={{ duration: 7, repeat: Infinity, ease: "linear", delay: 1 }}
+            suppressHydrationWarning
           />
           <motion.path
             d="M20,0 C20,50 80,50 80,100"
@@ -136,6 +135,7 @@ const EmailParticleBackground: React.FC<EmailParticleBackgroundProps> = ({
             initial={{ pathLength: 0 }}
             animate={{ pathLength: 1 }}
             transition={{ duration: 6, repeat: Infinity, ease: "linear", delay: 2 }}
+            suppressHydrationWarning
           />
         </svg>
       </div>

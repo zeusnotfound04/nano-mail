@@ -10,10 +10,8 @@ interface CircleProps {
 }
 
 const LoadingAnimation: React.FC = () => {
-  // State to hold client-side generated circle positions
   const [circles, setCircles] = useState<CircleProps[]>([]);
 
-  // Generate circle positions on client-side only to avoid hydration mismatch
   useEffect(() => {
     const generatedCircles = Array.from({ length: 5 }).map((_, i) => ({
       id: i,
@@ -26,9 +24,9 @@ const LoadingAnimation: React.FC = () => {
   }, []);
 
   return (
-    <div className="w-full h-[500px] bg-black/40 backdrop-blur-md rounded-xl border border-[#00D8FF]/20 overflow-hidden shadow-lg flex flex-col items-center justify-center">
-      <div className="relative w-32 h-32 mb-8">
-        {/* Envelope animation */}
+    <div className="w-full h-[500px] bg-black/40 backdrop-blur-md rounded-xl border border-[#00D8FF]/20 overflow-hidden shadow-lg flex flex-col items-center justify-center" suppressHydrationWarning>
+      <div className="relative w-32 h-32 mb-8" suppressHydrationWarning>
+
         <motion.div
           className="absolute inset-0 w-full h-full"
           initial={{ scale: 0.8, opacity: 0 }}
@@ -43,6 +41,7 @@ const LoadingAnimation: React.FC = () => {
             repeatType: "reverse",
             repeatDelay: 1 
           }}
+          suppressHydrationWarning
         >
           <svg 
             xmlns="http://www.w3.org/2000/svg" 
@@ -73,6 +72,7 @@ const LoadingAnimation: React.FC = () => {
             repeat: Infinity,
             repeatDelay: 0.5 
           }}
+          suppressHydrationWarning
         />
         
         {/* Smaller decorative circles - only rendered client-side */}
@@ -94,12 +94,12 @@ const LoadingAnimation: React.FC = () => {
               repeat: Infinity,
               repeatDelay: 1,
             }}
+            suppressHydrationWarning
           />
         ))}
       </div>
 
-      {/* Text animation */}
-      <div className="flex items-center space-x-1 text-white text-lg mb-2">
+      <div className="flex items-center space-x-1 text-white text-lg mb-2" suppressHydrationWarning>
         <span>Checking for emails</span>
         {Array.from({ length: 3 }).map((_, i) => (
           <motion.span
@@ -112,14 +112,14 @@ const LoadingAnimation: React.FC = () => {
               repeatDelay: 0.5,
             }}
             className="text-[#00D8FF] text-xl"
+            suppressHydrationWarning
           >
             .
           </motion.span>
         ))}
       </div>
 
-      {/* Progress bar */}
-      <div className="w-64 h-1.5 bg-black/40 rounded-full overflow-hidden mt-4">
+      <div className="w-64 h-1.5 bg-black/40 rounded-full overflow-hidden mt-4" suppressHydrationWarning>
         <motion.div
           className="h-full bg-gradient-to-r from-[#00D8FF] to-[#427F39]"
           initial={{ width: "0%" }}
@@ -129,21 +129,21 @@ const LoadingAnimation: React.FC = () => {
             ease: "easeInOut",
             repeat: Infinity,
           }}
+          suppressHydrationWarning
         />
       </div>
 
-      {/* Helpful message */}
       <motion.p 
         className="text-white/60 text-sm max-w-md text-center mt-8 px-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1, duration: 1 }}
+        suppressHydrationWarning
       >
         Your temporary inbox is being refreshed. New emails will appear automatically once they arrive.
       </motion.p>
 
-      {/* Circuit lines animation */}
-      <svg width="100%" height="100%" className="absolute inset-0 opacity-10 pointer-events-none">
+      <svg width="100%" height="100%" className="absolute inset-0 opacity-10 pointer-events-none" suppressHydrationWarning>
         <motion.path
           d="M0,50 Q50,20 100,50 T200,50"
           stroke="#00D8FF"
@@ -152,6 +152,7 @@ const LoadingAnimation: React.FC = () => {
           initial={{ pathLength: 0, opacity: 0.3 }}
           animate={{ pathLength: 1, opacity: 0.8 }}
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          suppressHydrationWarning
         />
         <motion.path
           d="M20,10 C40,80 120,30 200,60"
@@ -161,6 +162,7 @@ const LoadingAnimation: React.FC = () => {
           initial={{ pathLength: 0, opacity: 0.3 }}
           animate={{ pathLength: 1, opacity: 0.8 }}
           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+          suppressHydrationWarning
         />
       </svg>
     </div>

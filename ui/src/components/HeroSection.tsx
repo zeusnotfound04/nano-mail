@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { encodeQueryParam } from "@/lib/queryEncoding";
 
 export default function HeroSection() {
-    const router = useRouter();
+  const router = useRouter();
   const [username, setUsername] = useState<string>("");
   const [blurAnimationComplete, setBlurAnimationComplete] = useState(false);
 
@@ -18,19 +18,19 @@ export default function HeroSection() {
 
   const handleCreateInbox = useCallback(() => {
     if (username.trim()) {
-        const encodedUsername = encodeQueryParam(username.toLowerCase());
-        router.push(`/v1/inbox?q=${encodedUsername}`);
-      }
+      const encodedUsername = encodeQueryParam(username.toLowerCase());
+      router.push(`/v1/inbox?q=${encodedUsername}`);
+    }
   }, [username, router]);
 
-
   return (
-    <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
+    <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 pb-16 sm:pb-20 pt-16 sm:pt-0" suppressHydrationWarning>
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.5 }}
         className="max-w-3xl mx-auto text-center"
+        suppressHydrationWarning
       >
         <BlurText
           text=" Fast. Private. Disposable. This is NanoMail."
@@ -38,15 +38,25 @@ export default function HeroSection() {
           animateBy="words"
           direction="top"
           highlightWords={[{ word: "NanoMail", color: "#11ba93" }]}
-          className="text-4xl text-center md:text-6xl font-bold text-white mb-6"
+          className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6"
           onAnimationComplete={handleBlurAnimationComplete}
         />
-        <p className="text-md text-gray-300 mb-8">
-          Inboxes that exist when you need them. No signups. No tracking. No trace. Just raw, unfiltered access for the internet's underground.
-        </p>
         
-        <EmailInput username={username} setUsername={setUsername} />
-        <CreateInboxButton handleCreateInbox={handleCreateInbox} />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 1.2 }}
+          suppressHydrationWarning
+        >
+          <p className="text-sm sm:text-md text-gray-300 mb-6 sm:mb-8 max-w-xl mx-auto" suppressHydrationWarning>
+            Inboxes that exist when you need them. No signups. No tracking. No trace. Just raw, unfiltered access for the internet's underground.
+          </p>
+          
+          <div className="space-y-4 sm:space-y-6" suppressHydrationWarning>
+            <EmailInput username={username} setUsername={setUsername} />
+            <CreateInboxButton handleCreateInbox={handleCreateInbox} />
+          </div>
+        </motion.div>
       </motion.div>
     </div>
   );

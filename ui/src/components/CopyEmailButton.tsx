@@ -11,7 +11,6 @@ const CopyEmailButton: React.FC<CopyEmailButtonProps> = ({ emailAddress }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   
-  // Effect to detect mobile devices
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 640);

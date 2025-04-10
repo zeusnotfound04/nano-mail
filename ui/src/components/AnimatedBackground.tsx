@@ -18,9 +18,9 @@ const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({
   auroraSpeed = 0.5,
 }) => {
   return (
-    <div className="fixed inset-0 w-full h-full overflow-hidden">
-      {/* Aurora layer */}
-      <div className="absolute inset-0 -z-10">
+    <div className="fixed inset-0 w-full h-full overflow-hidden" suppressHydrationWarning>
+      
+      <div className="absolute inset-0 -z-10" suppressHydrationWarning>
         <Aurora
           colorStops={auroraColors}
           amplitude={auroraAmplitude}

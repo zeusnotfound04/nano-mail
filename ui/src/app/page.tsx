@@ -4,7 +4,7 @@ import Navbar from "@/components/Navbar";
 
 export default function Home() {
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-hidden" suppressHydrationWarning>
       <Navbar />
       
       <main className="relative min-h-screen w-full">
