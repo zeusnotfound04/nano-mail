@@ -226,26 +226,20 @@ func (s *smtpSession) processMessageData() error {
 
 	logger.Debug("Message size", "bytes", messageSize)
 
-	// Custom parsing for messages that might have malformed headers
 	var subject string
-	var body string
+	var body string = messageData // Store the complete raw message
 
-	// Split the message into headers and body
+	// Extract subject for convenience
 	parts := strings.SplitN(messageData, "\r\n\r\n", 2)
 	if len(parts) == 2 {
 		headers := parts[0]
-		body = parts[1]
 
-		// Extract subject from headers
 		for _, line := range strings.Split(headers, "\r\n") {
 			if strings.HasPrefix(strings.ToLower(line), "subject:") {
 				subject = strings.TrimSpace(line[8:])
 				break
 			}
 		}
-	} else {
-		// Fallback if we can't split properly
-		body = messageData
 	}
 
 	// Fallback to original mail package parsing if needed
@@ -254,10 +248,6 @@ func (s *smtpSession) processMessageData() error {
 		msg, err := mail.ReadMessage(bytes.NewBufferString(messageData))
 		if err == nil {
 			subject = msg.Header.Get("Subject")
-			bodyBytes, _ := io.ReadAll(msg.Body)
-			if len(bodyBytes) > 0 {
-				body = string(bodyBytes)
-			}
 		} else {
 			logger.Warn("Failed to parse with standard mail package, using fallback", "error", err)
 		}
@@ -267,7 +257,7 @@ func (s *smtpSession) processMessageData() error {
 		From:    s.sender,
 		To:      s.recipients,
 		Subject: subject,
-		Body:    body,
+		Body:    body, // Store the complete raw email
 		Size:    messageSize,
 		Date:    time.Now(),
 	}
@@ -310,7 +300,6 @@ func (s *smtpSession) handleBdat(params string) {
 		return
 	}
 
-	// Parse chunk size
 	chunkSize, err := strconv.Atoi(parts[0])
 	if err != nil {
 		logger.Error("Invalid BDAT chunk size", "params", params, "error", err)
@@ -318,7 +307,6 @@ func (s *smtpSession) handleBdat(params string) {
 		return
 	}
 
-	// Check if this is the last chunk
 	isLast := false
 	if len(parts) > 1 && strings.ToUpper(parts[1]) == "LAST" {
 		isLast = true
@@ -326,7 +314,6 @@ func (s *smtpSession) handleBdat(params string) {
 
 	logger.Info("Receiving BDAT chunk", "size", chunkSize, "isLast", isLast)
 
-	// Read the binary data chunk
 	chunk := make([]byte, chunkSize)
 	bytesRead := 0
 
@@ -340,7 +327,6 @@ func (s *smtpSession) handleBdat(params string) {
 		bytesRead += n
 	}
 
-	// Append chunk to message buffer
 	s.message.Write(chunk)
 
 	// Check if we've exceeded size limits
@@ -352,10 +338,8 @@ func (s *smtpSession) handleBdat(params string) {
 		return
 	}
 
-	// Acknowledge receipt of the chunk
 	s.writeResponse("250 OK\r\n")
 
-	// Process the complete message if this was the last chunk
 	if isLast {
 		logger.Info("Processing complete BDAT message")
 		err := s.processMessageData()
