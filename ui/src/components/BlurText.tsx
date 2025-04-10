@@ -35,6 +35,7 @@ const BlurText: React.FC<BlurTextProps> = ({
 }) => {
   const elements = animateBy === 'words' ? text.split(' ') : text.split('');
   const [inView, setInView] = useState(false);
+  const [animationCompleted, setAnimationCompleted] = useState(false);
   const ref = useRef<HTMLParagraphElement>(null);
   const animatedCount = useRef(0);
 
@@ -53,9 +54,12 @@ const BlurText: React.FC<BlurTextProps> = ({
   ];
 
   useEffect(() => {
+    // If animation is already completed, don't re-observe
+    if (animationCompleted) return;
+    
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry.isIntersecting && !animationCompleted) {
           setInView(true);
           if (ref.current) {
             observer.unobserve(ref.current);
@@ -70,23 +74,28 @@ const BlurText: React.FC<BlurTextProps> = ({
     }
 
     return () => observer.disconnect();
-  }, [threshold, rootMargin]);
+  }, [threshold, rootMargin, animationCompleted]);
 
   const springs = useSprings(
     elements.length,
     elements.map((_, i) => ({
       from: animationFrom || defaultFrom,
-      to: inView
+      to: (inView && !animationCompleted)
         ? async (next: (arg: Record<string, SpringValue<any>>) => Promise<void>) => {
           for (const step of animationTo || defaultTo) {
             await next(step);
           }
           animatedCount.current += 1;
-          if (animatedCount.current === elements.length && onAnimationComplete) {
-            onAnimationComplete();
+          if (animatedCount.current === elements.length) {
+            if (onAnimationComplete) {
+              onAnimationComplete();
+            }
+            setAnimationCompleted(true);
           }
         }
-        : animationFrom || defaultFrom,
+        : animationCompleted 
+          ? (animationTo ? animationTo[animationTo.length - 1] : defaultTo[defaultTo.length - 1])
+          : (animationFrom || defaultFrom),
       delay: i * delay,
       config: { easing: easing as any },
     }))
