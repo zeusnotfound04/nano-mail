@@ -355,22 +355,7 @@ function InboxContent() {
         </div>
       </main>
 
-      <motion.footer
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.5 }}
-        className="absolute bottom-0 w-full py-2 md:py-4 px-4 md:px-6 text-center bg-black/40 backdrop-blur-sm border-t border-[#00D8FF]/10"
-      >
-        <p className="text-white/60 text-xs md:text-sm">
-          Emails are automatically deleted after 7 days.
-          <a
-            href="/faq"
-            className="text-[#00D8FF] hover:text-[#00D8FF]/80 ml-2 transition-colors underline decoration-[#00D8FF]/30 hover:decoration-[#00D8FF]"
-          >
-            Learn more
-          </a>
-        </p>
-      </motion.footer>
+      
     </div>
   );
 }

@@ -204,12 +204,15 @@ const GithubIcon = () => (
 
 const NanoMailLogo = () => (
   <div className="flex items-center">
+    <Link href="/" className="flex items-center">
+    
     <motion.div 
       initial={{ rotate: 0 }}
       animate={{ rotate: 360 }}
       transition={{ duration: 4, ease: "linear", repeat: Infinity }}
       className="w-8 h-8 rounded-full bg-gradient-to-br from-[#00D8FF] to-[#427F39] flex items-center justify-center"
     >
+
       <span className="text-white text-sm font-bold">N</span>
     </motion.div>
     <motion.span 
@@ -218,8 +221,10 @@ const NanoMailLogo = () => (
       transition={{ duration: 0.5, delay: 0.3 }}
       className="ml-2 text-white font-bold text-lg"
     >
+
       Nano<span className="text-[#11baa9]">Mail</span>
     </motion.span>
+    </Link>
   </div>
 );
 
