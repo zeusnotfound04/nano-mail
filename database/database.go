@@ -68,13 +68,12 @@ func ConnectDB() (*sql.DB, error) {
 }
 
 func StoreMail(ctx context.Context, db *sql.DB, msg *message.Message) error {
-	fmt.Println("📨 Incoming message to store in DB:")
+	fmt.Println(" Incoming message to store in DB:")
 	fmt.Printf("From: %s\nTo: %v\nSubject: %s\nSize: %d\nDate: %v\n",
 		msg.From, msg.To, msg.Subject, msg.Size, msg.Date)
 
 	fmt.Println("🔌 Checking DB connection...")
 
-	// Check DB connection first
 	var err error
 	for retries := 0; retries < 3; retries++ {
 		fmt.Printf("DB connection check attempt %d/3\n", retries+1)
@@ -118,7 +117,6 @@ func StoreMail(ctx context.Context, db *sql.DB, msg *message.Message) error {
 	}
 	defer tx.Rollback()
 
-	// Prepare insert query
 	query := `
 		INSERT INTO emails (
 			sender, recipients, subject, body, size, created_at

@@ -87,11 +87,9 @@ func (s *smtpSession) handleHelo(cmd string, params string) {
 	if cmd == "HELO" {
 		s.writeResponse(fmt.Sprintf("250 %s\r\n", s.server.config.Domain))
 	} else {
-		// For EHLO, we need to send a multi-line response with capabilities
-		// First line
 		s.writeResponse(fmt.Sprintf("250-%s\r\n", s.server.config.Domain))
 
-		// Build capabilities
+
 		capabilities := []string{
 			fmt.Sprintf("250-SIZE %d", s.server.config.MaxMessageSize),
 			"250-8BITMIME",
@@ -101,18 +99,16 @@ func (s *smtpSession) handleHelo(cmd string, params string) {
 			capabilities = append(capabilities, "250-CHUNKING")
 		}
 
-		// Add additional standard capabilities
+
 		capabilities = append(capabilities, "250-PIPELINING", "250-SMTPUTF8")
 
-		// Last capability should not have a dash after 250
+
 		lastCapability := "250 HELP"
 
-		// Send all capabilities except the last one
 		for _, cap := range capabilities {
 			s.writeResponse(cap + "\r\n")
 		}
 
-		// Send the last capability
 		s.writeResponse(lastCapability + "\r\n")
 	}
 
@@ -227,9 +223,8 @@ func (s *smtpSession) processMessageData() error {
 	logger.Debug("Message size", "bytes", messageSize)
 
 	var subject string
-	var body string = messageData // Store the complete raw message
+	var body string = messageData 
 
-	// Extract subject for convenience
 	parts := strings.SplitN(messageData, "\r\n\r\n", 2)
 	if len(parts) == 2 {
 		headers := parts[0]
@@ -242,9 +237,8 @@ func (s *smtpSession) processMessageData() error {
 		}
 	}
 
-	// Fallback to original mail package parsing if needed
+	
 	if subject == "" {
-		// Try to parse with standard mail package as fallback
 		msg, err := mail.ReadMessage(bytes.NewBufferString(messageData))
 		if err == nil {
 			subject = msg.Header.Get("Subject")
@@ -329,7 +323,6 @@ func (s *smtpSession) handleBdat(params string) {
 
 	s.message.Write(chunk)
 
-	// Check if we've exceeded size limits
 	if s.message.Len() > int(s.server.config.MaxMessageSize) {
 		logger.Warn("Message size limit exceeded", "size", s.message.Len())
 		s.writeResponse("552 Message size exceeds fixed limit\r\n")

@@ -36,7 +36,7 @@ func main() {
 		log.Fatal("Failed to connect to DB:", err)
 	}
 	// initSchema(db)
-	defer db.Close() // Ensuring database connection is properly closed
+	defer db.Close() 
 
 	logger.Info("Starting SMTP server....")
 	srv, err := server.StartServer(cfg, db)
