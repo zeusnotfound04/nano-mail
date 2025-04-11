@@ -13,6 +13,7 @@
     "@react-spring/web": "^9.7.5",
     "@tabler/icons-react": "^3.31.0",
     "@types/mailparser": "^3.4.5",
+    "@vercel/speed-insights": "^1.2.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.487.0",
@@ -39,4 +40,4 @@
     "tailwindcss": "^4",
     "typescript": "^5"
   }
-} 
+}
