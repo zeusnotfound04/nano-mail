@@ -137,7 +137,7 @@ function Faq() {
     {
       question: "Is my temporary email address unique?",
       answer:
-        "Yes, each generated email address is unique for your session. However, once it expires, the same address might be assigned to another user.",
+        "Yes, each generated email address is unique for your session. However, other people can access your created temporary address for their use. So, please do not use it for sensitive information.",
     },
     {
       question: "Can I recover a deleted email?",

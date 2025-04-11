@@ -56,6 +56,41 @@ console.log(blurAnimationComplete)
           
           <div className="space-y-4 sm:space-y-6" suppressHydrationWarning>
             <EmailInput username={username} setUsername={setUsername} />
+            
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.9 }}
+              className="relative max-w-md mx-auto"
+            >
+              <div className="px-4 py-2 text-xs text-center relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-900/10 to-transparent rounded-md"></div>
+                <div className="absolute inset-0 overflow-hidden">
+                  <motion.div 
+                    className="absolute h-[1px] w-full top-0 left-0"
+                    style={{ background: "linear-gradient(90deg, transparent, rgba(0, 216, 255, 0.4), transparent)" }}
+                    animate={{ x: ["-100%", "100%"] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                  />
+                  <motion.div 
+                    className="absolute h-[1px] w-full bottom-0 left-0"
+                    style={{ background: "linear-gradient(90deg, transparent, rgba(0, 216, 255, 0.4), transparent)" }}
+                    animate={{ x: ["100%", "-100%"] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                  />
+                </div>
+                <motion.p 
+                  className="text-[#427F39] font-light tracking-wide relative z-10"
+                  animate={{ 
+                    textShadow: ["0 0 4px rgba(0, 216, 255, 0.3)", "0 0 8px rgba(0, 216, 255, 0.5)", "0 0 4px rgba(0, 216, 255, 0.3)"] 
+                  }}
+                  transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
+                >
+                  Choose a unique username for privacy
+                </motion.p>
+              </div>
+            </motion.div>
+            
             <CreateInboxButton handleCreateInbox={handleCreateInbox} />
           </div>
         </motion.div>
