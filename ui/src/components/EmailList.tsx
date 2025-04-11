@@ -17,19 +17,17 @@ interface EmailListProps {
   emails: Email[];
   selectedEmailId: string | null;
   onSelectEmail: (emailId: string) => void;
-  showTitle?: boolean;
+ 
 }
 
 const EmailList: React.FC<EmailListProps> = ({
   emails,
   selectedEmailId,
   onSelectEmail,
-  showTitle = true,
 }) => {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    // Check if we're on mobile
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };

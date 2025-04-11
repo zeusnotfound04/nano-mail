@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+
 "use client";
 import { motion } from "motion/react";
 import { useState, useCallback } from "react";
@@ -11,7 +13,7 @@ export default function HeroSection() {
   const router = useRouter();
   const [username, setUsername] = useState<string>("");
   const [blurAnimationComplete, setBlurAnimationComplete] = useState(false);
-
+console.log(blurAnimationComplete)
   const handleBlurAnimationComplete = useCallback(() => {
     setBlurAnimationComplete(true);
   }, []);

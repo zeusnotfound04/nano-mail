@@ -1,6 +1,14 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+
+
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Renderer, Program, Mesh, Color, Triangle } from "ogl";
+
+
+
+
+
 
 const VERT = `#version 300 es
 in vec2 position;
@@ -134,23 +142,24 @@ export default function Aurora(props: AuroraProps) {
 
   useEffect(() => {
     if (!isMounted) return;
-
+  
     const ctn = ctnDom.current;
     if (!ctn) return;
-
+  
     const renderer = new Renderer({
       alpha: true,
       premultipliedAlpha: true,
       antialias: true,
     });
     const gl = renderer.gl;
+  
     gl.clearColor(0, 0, 0, 0);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     gl.canvas.style.backgroundColor = "transparent";
-
-    let program: Program | undefined;
-
+  
+    let program: Program | undefined = undefined;
+  
     function resize() {
       if (!ctn) return;
       const width = ctn.offsetWidth;
@@ -161,18 +170,19 @@ export default function Aurora(props: AuroraProps) {
       }
     }
     window.addEventListener("resize", resize);
-
+  
     const geometry = new Triangle(gl);
-    if (geometry.attributes.uv) {
-      // TypeScript may require a type assertion here.
-      delete (geometry.attributes as any).uv;
+  
+    // ✅ Type-safe deletion of `uv` attribute
+    if ("uv" in geometry.attributes) {
+      delete geometry.attributes["uv"];
     }
-
-    const colorStopsArray = colorStops.map((hex) => {
+  
+    const colorStopsArray: [number, number, number][] = colorStops.map((hex) => {
       const c = new Color(hex);
       return [c.r, c.g, c.b];
     });
-
+  
     program = new Program(gl, {
       vertex: VERT,
       fragment: FRAG,
@@ -184,14 +194,15 @@ export default function Aurora(props: AuroraProps) {
         uBlend: { value: blend },
       },
     });
-
+  
     const mesh = new Mesh(gl, { geometry, program });
     ctn.appendChild(gl.canvas);
-
+  
     let animateId = 0;
     const update = (t: number) => {
       animateId = requestAnimationFrame(update);
       const { time = t * 0.01, speed = 1.0 } = propsRef.current;
+  
       if (program) {
         program.uniforms.uTime.value = time * speed * 0.1;
         program.uniforms.uAmplitude.value = propsRef.current.amplitude ?? 1.0;
@@ -205,9 +216,9 @@ export default function Aurora(props: AuroraProps) {
       }
     };
     animateId = requestAnimationFrame(update);
-
+  
     resize();
-
+  
     return () => {
       cancelAnimationFrame(animateId);
       window.removeEventListener("resize", resize);

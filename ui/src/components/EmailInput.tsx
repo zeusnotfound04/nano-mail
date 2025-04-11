@@ -1,6 +1,6 @@
 "use client";
 import { motion } from "motion/react";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import CyberLines from "@/components/CyberLines";
 import DecorativeParticles from "@/components/DecorativeParticles";

@@ -20,14 +20,6 @@ type PrismaEmail = {
   created_at: Date | null;
 }
 
-function safeStringify(obj: any): string {
-  return JSON.stringify(obj, (key, value) => {
-    if (typeof value === 'bigint') {
-      return value.toString();
-    }
-    return value;
-  }, 2);
-}
 
 export const searchEmails = unstable_cache(
   async (rcptQuery: string) => {
@@ -90,10 +82,16 @@ export const searchEmails = unstable_cache(
           }))
         );
         return output;
-      } catch (dbError : any) {
-        console.error("Database query error:", dbError);
-        throw new Error(`Database query failed: ${dbError.message}`);
+      } catch (dbError: unknown) {
+        if (dbError instanceof Error) {
+          console.error("Database query error:", dbError);
+          throw new Error(`Database query failed: ${dbError.message}`);
+        } else {
+          console.error("Unknown database query error:", dbError);
+          throw new Error("Database query failed due to an unknown error.");
+        }
       }
+      
     } catch (error) {
       console.error("Error in searchEmails:", error);
       return [];

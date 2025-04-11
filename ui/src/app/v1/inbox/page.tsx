@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { decodeQueryParam } from "@/lib/queryEncoding";
 import AnimatedBackground from "@/components/AnimatedBackground";
@@ -12,7 +12,7 @@ import LoadingAnimation from "@/components/LoadingAnimation";
 import { motion } from "motion/react";
 import { searchEmails } from "@/actions/getEmails";
 
-export default function InboxPage() {
+function InboxContent() {
   const searchParam = useSearchParams();
   const router = useRouter();
   const encodedQuery = searchParam.get("q") ?? "";
@@ -22,15 +22,14 @@ export default function InboxPage() {
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  // For mobile view toggling
+
   const [mobileView, setMobileView] = useState<"list" | "detail">("list");
-  // Track read emails
+
   const [readEmails, setReadEmails] = useState<string[]>([]);
 
-  // Load read emails from local storage when component mounts and username is available
   useEffect(() => {
     if (!decodedUsername) return;
-    
+
     try {
       const storedReadEmails = localStorage.getItem(
         `read_emails_${decodedUsername}`
@@ -43,12 +42,6 @@ export default function InboxPage() {
     }
   }, [decodedUsername]);
 
-  // Get read emails from state
-  const getReadEmails = (): string[] => {
-    return readEmails;
-  };
-
-
   const saveReadEmail = (emailId: string | number) => {
     if (!decodedUsername) return;
 
@@ -57,7 +50,7 @@ export default function InboxPage() {
       if (!readEmails.includes(emailIdStr)) {
         const newReadEmails = [...readEmails, emailIdStr];
         setReadEmails(newReadEmails);
-        
+
         localStorage.setItem(
           `read_emails_${decodedUsername}`,
           JSON.stringify(newReadEmails)
@@ -77,11 +70,11 @@ export default function InboxPage() {
     try {
       const fetchedEmails = await searchEmails(username);
       const transformedEmails = fetchedEmails.map((email) => ({
-        id: String(email.id), 
+        id: String(email.id),
         from: email.mail_from || "",
         subject: email.subject || "",
         content: email.data?.text || "",
-        htmlContent: email.data?.text_as_html || "", 
+        htmlContent: email.data?.text_as_html || "",
         timestamp: new Date(email.date),
         read: isEmailRead(email.id),
       }));
@@ -95,7 +88,6 @@ export default function InboxPage() {
         if (foundEmail) {
           setSelectedEmail(foundEmail);
 
-          // Mark as read
           if (!foundEmail.read) {
             foundEmail.read = true;
             setEmails(
@@ -181,16 +173,11 @@ export default function InboxPage() {
     }
   };
 
-  const handleBackToList = () => {
-    setMobileView("list");
-  };
-
   return (
     <div className="relative min-h-screen overflow-hidden">
       <Navbar />
 
       <main className="relative min-h-screen w-full pt-20 md:pt-24 pb-16 px-3 md:px-4">
-
         <AnimatedBackground
           auroraColors={["#00D8FF", "#427F39", "#00D8FF"]}
           primaryParticleColor="#00D8FF"
@@ -203,7 +190,6 @@ export default function InboxPage() {
         <EmailParticleBackground density={30} />
 
         <div className="container mx-auto max-w-5xl z-10 relative">
-          
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -386,5 +372,19 @@ export default function InboxPage() {
         </p>
       </motion.footer>
     </div>
+  );
+}
+
+export default function InboxPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <LoadingAnimation />
+        </div>
+      }
+    >
+      <InboxContent />
+    </Suspense>
   );
 }

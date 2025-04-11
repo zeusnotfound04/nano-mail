@@ -206,14 +206,6 @@ const EnhancedParticleEffect = ({ primaryColor, secondaryColor, isHovered }: Enc
     setMounted(true);
   }, []);
   
-  const stablePositions = React.useMemo(() => {
-    return Array(8).fill(0).map(() => ({
-      initialX: 0,
-      initialY: 0,
-      animateX: 0
-    }));
-  }, []);
-  
   if (!mounted) {
     return (
       <>

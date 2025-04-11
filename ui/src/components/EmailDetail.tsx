@@ -3,12 +3,9 @@ import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { format } from "date-fns";
 import { Email } from "./EmailList";
-import { Roboto  , Poppins} from "next/font/google";
+import {  Poppins} from "next/font/google";
 
-const roboto = Roboto({ 
-  weight: "700",
-  subsets: ["latin"],
-});
+
 const poppins = Poppins({
   weight: "700",
   subsets: ["latin"],
