@@ -177,11 +177,12 @@ npm run dev
 
 <div align="center">
   <!-- ASCII art system diagram with color -->
-  <pre><span style="color:#00ADD8">┌─────────────┐      ┌─────────────┐      ┌─────────────┐
-│  External   │      │   NanoMail  │      │  NanoMail   │
-│   Email     │─────▶│  SMTP Server│─────▶│  Database   │
-│   Servers   │      │    (Go)     │      │(PostgreSQL) │
-└─────────────┘      └─────────────┘      └─────────────┘
+  <pre><span style="color:#00ADD8">
+                    ┌─────────────┐      ┌─────────────┐
+                    │   NanoMail  │      │  NanoMail   │
+                   │  SMTP Server│─────▶ │  Database   │
+                    │    (Go)     │      │(PostgreSQL) │
+                    └─────────────┘      └─────────────┘
                                                 │
                                                 │
                                                 ▼
