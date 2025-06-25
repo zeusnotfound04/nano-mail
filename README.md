@@ -290,6 +290,6 @@ npm run dev
       <img src="https://img.shields.io/badge/Made_with_💙_by_Zeus-181717?style=for-the-badge&logo=github&logoColor=white" alt="Made by Zeus">
     </a>
   </p>
-  
+  <p>Thanks Shubh Exists for writing the readme file for me ❤️</p>
   <img src="https://profile-counter.glitch.me/nano-mail-readme/count.svg" alt="Visitor Count">
 </div>
