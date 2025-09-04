@@ -72,7 +72,7 @@ func StoreMail(ctx context.Context, db *sql.DB, msg *message.Message) error {
 	fmt.Printf("From: %s\nTo: %v\nSubject: %s\nSize: %d\nDate: %v\n",
 		msg.From, msg.To, msg.Subject, msg.Size, msg.Date)
 
-	fmt.Println("🔌 Checking DB connection...")
+	fmt.Println("Checking DB connection...")
 
 	var err error
 	for retries := 0; retries < 3; retries++ {
@@ -108,7 +108,6 @@ func StoreMail(ctx context.Context, db *sql.DB, msg *message.Message) error {
 
 	fmt.Println("DB connection is alive, proceeding with storing message")
 
-	// Begin transaction
 	fmt.Println("Beginning database transaction...")
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {

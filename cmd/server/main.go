@@ -11,8 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	// "github.com/zeusnotfound04/nano-mail/database"
-	// "github.com/zeusnotfound04/nano-mail/helper"
 	"github.com/zeusnotfound04/nano-mail/database"
 	"github.com/zeusnotfound04/nano-mail/internal/config"
 	"github.com/zeusnotfound04/nano-mail/internal/server"
@@ -29,14 +27,20 @@ func main() {
 	cfg.Port = "25"
 	cfg.Domain = "zeus.nanomail.live"
 	cfg.MaxMessageSize = 20 * 1024 * 1024
-	cfg.ConnectionPerIP = 5
+	cfg.ConnectionPerIP = 10
+	cfg.MaxRecipients = 50
+
+	cfg.ReadTimeout = 30 * time.Second
+	cfg.WriteTimeout = 30 * time.Second
+	cfg.Logger = logger
+
+	cfg.Logger = logger
 
 	db, err := database.ConnectDB()
 	if err != nil {
 		log.Fatal("Failed to connect to DB:", err)
 	}
-	// initSchema(db)
-	defer db.Close() 
+	defer db.Close()
 
 	logger.Info("Starting SMTP server....")
 	srv, err := server.StartServer(cfg, db)
@@ -76,7 +80,6 @@ func main() {
 
 }
 
-// For intial scehama intialization for the first time
 func initSchema(db *sql.DB) error {
 	query := `
     CREATE TABLE IF NOT EXISTS emails (

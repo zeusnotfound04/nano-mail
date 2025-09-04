@@ -6,18 +6,13 @@ import (
 	"database/sql"
 	"fmt"
 	"net"
+	"time"
 
+	"github.com/zeusnotfound04/nano-mail/database"
 	"github.com/zeusnotfound04/nano-mail/internal/config"
 	"github.com/zeusnotfound04/nano-mail/internal/limiter"
+	"github.com/zeusnotfound04/nano-mail/pkg/message"
 )
-
-// type Server struct {
-// 	config      *config.Config
-// 	listener    net.Listener
-// 	shutdown    chan struct{}
-// 	wg          sync.WaitGroup
-// 	rateLimiter limiter.ConnectionLimiter
-// }
 
 func NewServer(cfg *config.Config, db *sql.DB) *Server {
 	if cfg == nil {
@@ -33,11 +28,40 @@ func NewServer(cfg *config.Config, db *sql.DB) *Server {
 
 	connectionLimiter = limiter.NewRateLimiter(maxPerIP)
 
-	return &Server{
+	server := &Server{
 		config:      cfg,
 		shutdown:    make(chan struct{}),
 		rateLimiter: connectionLimiter,
 		db:          db,
+		mailQueue:   make(chan *message.Message, 1000),
+		workers:     4,
+	}
+
+	for i := 0; i < server.workers; i++ {
+		server.wg.Add(1)
+		go server.processMailQueue()
+	}
+
+	return server
+}
+
+func (s *Server) processMailQueue() {
+	defer s.wg.Done()
+	for {
+		select {
+		case <-s.shutdown:
+			return
+		case msg := <-s.mailQueue:
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			err := database.StoreMail(ctx, s.db, msg)
+			cancel()
+
+			if err != nil {
+				s.config.Logger.Error("Failed to store mail from queue", "error", err)
+			} else {
+				s.config.Logger.Debug("Mail stored from queue", "from", msg.From, "size", msg.Size)
+			}
+		}
 	}
 }
 
@@ -95,6 +119,9 @@ func (s *Server) acceptConnections() {
 func (s *Server) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
+	messageBuffer := getPooledBuffer()
+	defer returnPooledBuffer(messageBuffer)
+
 	session := &smtpSession{
 		server:     s,
 		conn:       conn,
@@ -102,6 +129,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 		writer:     bufio.NewWriter(conn),
 		state:      stateInit,
 		recipients: make([]string, 0, s.config.MaxRecipients),
+		message:    messageBuffer,
 		remoteAddr: conn.RemoteAddr().String(),
 		ctx:        context.Background(),
 	}

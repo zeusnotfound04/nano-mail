@@ -173,7 +173,6 @@ export default function Aurora(props: AuroraProps) {
   
     const geometry = new Triangle(gl);
   
-    // ✅ Type-safe deletion of `uv` attribute
     if ("uv" in geometry.attributes) {
       delete geometry.attributes["uv"];
     }

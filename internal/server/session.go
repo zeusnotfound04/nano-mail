@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/mail"
 	"strconv"
 	"strings"
 	"sync"
@@ -19,6 +18,22 @@ import (
 	"github.com/zeusnotfound04/nano-mail/internal/limiter"
 	"github.com/zeusnotfound04/nano-mail/pkg/message"
 )
+
+var bufferPool = sync.Pool{
+	New: func() interface{} {
+		return bytes.NewBuffer(make([]byte, 0, 64*1024))
+	},
+}
+
+func getPooledBuffer() *bytes.Buffer {
+	buf := bufferPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	return buf
+}
+
+func returnPooledBuffer(buf *bytes.Buffer) {
+	bufferPool.Put(buf)
+}
 
 const (
 	stateInit = iota
@@ -37,6 +52,9 @@ type Server struct {
 	wg          sync.WaitGroup
 	db          *sql.DB
 	rateLimiter limiter.ConnectionLimiter
+
+	mailQueue chan *message.Message
+	workers   int
 }
 
 type smtpSession struct {
@@ -48,7 +66,7 @@ type smtpSession struct {
 	helo       string
 	sender     string
 	recipients []string
-	message    bytes.Buffer
+	message    *bytes.Buffer
 	remoteAddr string
 	ctx        context.Context
 }
@@ -89,7 +107,6 @@ func (s *smtpSession) handleHelo(cmd string, params string) {
 	} else {
 		s.writeResponse(fmt.Sprintf("250-%s\r\n", s.server.config.Domain))
 
-
 		capabilities := []string{
 			fmt.Sprintf("250-SIZE %d", s.server.config.MaxMessageSize),
 			"250-8BITMIME",
@@ -99,9 +116,7 @@ func (s *smtpSession) handleHelo(cmd string, params string) {
 			capabilities = append(capabilities, "250-CHUNKING")
 		}
 
-
 		capabilities = append(capabilities, "250-PIPELINING", "250-SMTPUTF8")
-
 
 		lastCapability := "250 HELP"
 
@@ -218,65 +233,34 @@ func (s *smtpSession) processMessageData() error {
 	)
 
 	messageSize := int64(s.message.Len())
-	messageData := s.message.String()
-
-	logger.Debug("Message size", "bytes", messageSize)
-
-	var subject string
-	var body string = messageData 
-
-	parts := strings.SplitN(messageData, "\r\n\r\n", 2)
-	if len(parts) == 2 {
-		headers := parts[0]
-
-		for _, line := range strings.Split(headers, "\r\n") {
-			if strings.HasPrefix(strings.ToLower(line), "subject:") {
-				subject = strings.TrimSpace(line[8:])
-				break
-			}
-		}
-	}
-
-	
-	if subject == "" {
-		msg, err := mail.ReadMessage(bytes.NewBufferString(messageData))
-		if err == nil {
-			subject = msg.Header.Get("Subject")
-		} else {
-			logger.Warn("Failed to parse with standard mail package, using fallback", "error", err)
-		}
-	}
+	rawData := s.message.String()
 
 	message := &message.Message{
-		From:    s.sender,
-		To:      s.recipients,
-		Subject: subject,
-		Body:    body, // Store the complete raw email
-		Size:    messageSize,
-		Date:    time.Now(),
+		From: s.sender,
+		To:   s.recipients,
+		Body: rawData,
+		Size: messageSize,
+		Date: time.Now(),
 	}
 
-	fmt.Println("Raw Email Data summary:")
-	fmt.Printf("From: %s\nTo: %v\nSubject: %s\nSize: %d bytes\n",
-		message.From, message.To, message.Subject, message.Size)
+	select {
+	case s.server.mailQueue <- message:
+		logger.Info("Message queued for processing", "size", messageSize, "recipients", len(s.recipients))
+		return nil
+	default:
+		logger.Warn("Mail queue full, processing synchronously")
+		ctx, cancel := context.WithTimeout(s.ctx, 3*time.Second)
+		defer cancel()
 
-	ctx, cancel := context.WithTimeout(s.ctx, 10*time.Second)
-	defer cancel()
+		err := database.StoreMail(ctx, s.server.db, message)
+		if err != nil {
+			logger.Error("Failed to store message", "error", err)
+			return err
+		}
 
-	fmt.Println("Storing message in database...")
-	err := database.StoreMail(ctx, s.server.db, message)
-	if err != nil {
-		logger.Error("Failed to store message in database", "error", err)
-		fmt.Println("Failed to store message in the database:", err)
-		return err
+		logger.Info("Message stored synchronously", "size", messageSize, "recipients", len(s.recipients))
+		return nil
 	}
-
-	fmt.Println("Message stored successfully!")
-	logger.Info("Message processed successfully",
-		"size", message.Size,
-		"subject", message.Subject,
-	)
-	return nil
 }
 
 func (s *smtpSession) handleBdat(params string) {
@@ -287,7 +271,6 @@ func (s *smtpSession) handleBdat(params string) {
 		return
 	}
 
-	// Parse BDAT parameters: size and optional LAST flag
 	parts := strings.Fields(params)
 	if len(parts) < 1 {
 		s.writeResponse("501 Invalid BDAT parameters\r\n")

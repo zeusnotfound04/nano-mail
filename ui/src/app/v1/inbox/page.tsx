@@ -4,13 +4,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { decodeQueryParam } from "@/lib/queryEncoding";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Navbar from "@/components/Navbar";
-import EmailList, { Email } from "@/components/EmailList";
+import EmailList from "@/components/EmailList";
 import EmailDetail from "@/components/EmailDetail";
 import CopyEmailButton from "@/components/CopyEmailButton";
 import EmailParticleBackground from "@/components/EmailParticleBackground";
 import LoadingAnimation from "@/components/LoadingAnimation";
 import { motion } from "motion/react";
-import { searchEmails } from "@/actions/getEmails";
+import { useEmails, type Email } from "@/hooks/useEmails";
 
 function InboxContent() {
   const searchParam = useSearchParams();
@@ -18,13 +18,8 @@ function InboxContent() {
   const encodedQuery = searchParam.get("q") ?? "";
   const selectedEmailId = searchParam.get("id");
   const [decodedUsername, setDecodedUsername] = useState<string>("");
-  const [emails, setEmails] = useState<Email[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
   const [mobileView, setMobileView] = useState<"list" | "detail">("list");
-
   const [readEmails, setReadEmails] = useState<string[]>([]);
 
   useEffect(() => {
@@ -65,55 +60,15 @@ function InboxContent() {
     return readEmails.includes(String(emailId));
   };
 
-  const fetchEmails = async (username: string) => {
-    setLoading(true);
-    try {
-      const fetchedEmails = await searchEmails(username);
-      const transformedEmails = fetchedEmails.map((email) => ({
-        id: String(email.id),
-        from: email.mail_from || "",
-        subject: email.subject || "",
-        content: email.data?.text || "",
-        htmlContent: email.data?.text_as_html || "",
-        timestamp: new Date(email.date),
-        read: isEmailRead(email.id),
-      }));
+  const { data: emails = [], isLoading, isError, refetch } = useEmails(decodedUsername);
 
-      setEmails(transformedEmails);
-
-      if (selectedEmailId) {
-        const foundEmail = transformedEmails.find(
-          (email) => email.id === selectedEmailId
-        );
-        if (foundEmail) {
-          setSelectedEmail(foundEmail);
-
-          if (!foundEmail.read) {
-            foundEmail.read = true;
-            setEmails(
-              transformedEmails.map((email) =>
-                email.id === selectedEmailId
-                  ? { ...email, read: true }
-                  : email
-              )
-            );
-
-            saveReadEmail(selectedEmailId);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching emails:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+  const emailsWithReadStatus = emails.map(email => ({
+    ...email,
+    read: isEmailRead(email.id)
+  }));
 
   const handleRefresh = () => {
-    if (refreshing || loading) return;
-    setRefreshing(true);
-    fetchEmails(decodedUsername);
+    refetch();
   };
 
   useEffect(() => {
@@ -144,26 +99,32 @@ function InboxContent() {
 
     if (!decoded) {
       router.push("/");
-    } else {
-      fetchEmails(decoded);
     }
-  }, [encodedQuery, router, selectedEmailId]);
+  }, [encodedQuery, router]);
+
+  useEffect(() => {
+    if (selectedEmailId && emailsWithReadStatus.length > 0) {
+      const foundEmail = emailsWithReadStatus.find(
+        (email) => email.id === selectedEmailId
+      );
+      if (foundEmail) {
+        setSelectedEmail(foundEmail);
+        
+        if (!foundEmail.read) {
+          saveReadEmail(selectedEmailId);
+        }
+      }
+    }
+  }, [selectedEmailId, emailsWithReadStatus]);
 
   const handleSelectEmail = (emailId: string) => {
-    const email = emails.find((e) => e.id === emailId);
+    const email = emailsWithReadStatus.find((e) => e.id === emailId);
     if (email) {
       setSelectedEmail(email);
       const url = `/v1/inbox?q=${encodedQuery}&id=${emailId}`;
       router.push(url, { scroll: false });
 
       if (!email.read) {
-        email.read = true;
-        setEmails(
-          emails.map((e) =>
-            e.id === emailId ? { ...e, read: true } : e
-          )
-        );
-
         saveReadEmail(emailId);
       }
 
@@ -220,7 +181,7 @@ function InboxContent() {
                 <div className="mt-2 flex items-center space-x-3">
                   <motion.button
                     onClick={handleRefresh}
-                    disabled={refreshing || loading}
+                    disabled={isLoading}
                     whileHover={{
                       scale: 1.05,
                       boxShadow: "0 0 8px rgba(0, 216, 255, 0.5)",
@@ -236,12 +197,12 @@ function InboxContent() {
                       stroke="currentColor"
                       strokeWidth={2}
                       animate={
-                        refreshing
+                        isLoading
                           ? { rotate: 360 }
                           : { rotate: 0 }
                       }
                       transition={
-                        refreshing
+                        isLoading
                           ? {
                               repeat: Infinity,
                               duration: 1,
@@ -256,7 +217,7 @@ function InboxContent() {
                         d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                       />
                     </motion.svg>
-                    {refreshing ? "Checking..." : "Refresh"}
+                    {isLoading ? "Checking..." : "Refresh"}
                   </motion.button>
                   <CopyEmailButton
                     emailAddress={`${decodedUsername}@zeus.nanomail.live`}
@@ -266,7 +227,7 @@ function InboxContent() {
             )}
           </motion.div>
 
-          {!loading && selectedEmail && (
+          {!isLoading && selectedEmail && (
             <div className="md:hidden flex justify-center mb-4">
               <div className="inline-flex rounded-md bg-black/40 backdrop-blur-md border border-[#00D8FF]/20 p-1">
                 <button
@@ -321,7 +282,7 @@ function InboxContent() {
             </div>
           )}
 
-          {loading ? (
+          {isLoading ? (
             <LoadingAnimation />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -334,7 +295,7 @@ function InboxContent() {
                 }`}
               >
                 <EmailList
-                  emails={emails}
+                  emails={emailsWithReadStatus}
                   selectedEmailId={selectedEmail?.id || null}
                   onSelectEmail={handleSelectEmail}
                 />

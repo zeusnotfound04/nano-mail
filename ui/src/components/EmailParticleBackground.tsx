@@ -37,7 +37,6 @@ const EmailParticleBackground: React.FC<EmailParticleBackgroundProps> = ({
       delay: Math.random() * 10
     }));
     
-    // Generate envelope symbols
     const newEnvelopeSymbols = Array.from({ length: 5 }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
@@ -101,7 +100,7 @@ const EmailParticleBackground: React.FC<EmailParticleBackgroundProps> = ({
           }}
           suppressHydrationWarning
         >
-          ✉
+          E
         </motion.div>
       ))}
 
