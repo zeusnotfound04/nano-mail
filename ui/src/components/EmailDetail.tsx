@@ -193,28 +193,7 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ email, onBack }) => {
           <span>Temporary inbox - emails auto-delete after 7 days</span>
         </div>
 
-        <div className="flex space-x-2 order-1 sm:order-2 w-full sm:w-auto justify-center sm:justify-end">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs bg-[#00D8FF]/10 hover:bg-[#00D8FF]/20 text-[#00D8FF] rounded-md transition-colors flex items-center"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-4 sm:w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M7.707 3.293a1 1 0 010 1.414L5.414 7H11a7 7 0 017 7v2a1 1 0 11-2 0v-2a5 5 0 00-5-5H5.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-            </svg>
-            Reply
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs bg-[#00D8FF]/10 hover:bg-[#00D8FF]/20 text-[#00D8FF] rounded-md transition-colors flex items-center"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-4 sm:w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-            Forward
-          </motion.button>
-        </div>
+        
       </div>
 
       <style jsx global>{`
