@@ -108,9 +108,10 @@ const Footer: React.FC = () => {
         />
         
         <motion.div 
-          className="text-sm md:text-base font-medium text-white/90 flex items-center justify-center relative z-10"
+          className="text-sm md:text-base font-medium text-white/90 flex items-center justify-center relative z-10 cursor-pointer"
           animate={isHovered ? { letterSpacing: "0.05em" } : { letterSpacing: "0" }}
           transition={{ duration: 0.3 }}
+          onClick={() => window.open('https://zeusnotfound.tech', '_blank')}
         >
           Built by Zeus{" "}
           <motion.span 
