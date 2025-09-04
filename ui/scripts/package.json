@@ -1,0 +1,13 @@
+{
+  "name": "cleanup-emails",
+  "version": "1.0.0",
+  "description": "Email cleanup script for NanoMail",
+  "main": "cleanup-emails.js",
+  "scripts": {
+    "cleanup": "node cleanup-emails.js",
+    "cleanup:force": "echo 'DELETE ALL EMAILS' | node cleanup-emails.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.0.0"
+  }
+}
