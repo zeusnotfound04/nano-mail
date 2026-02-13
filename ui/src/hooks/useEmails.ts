@@ -30,7 +30,7 @@ export function useEmails(username: string) {
       }));
     },
     enabled: !!username,
-    staleTime: 1000 * 60 * 2,
+    staleTime: 0,
     gcTime: 1000 * 60 * 10,
     refetchInterval: 1000 * 30,
     refetchIntervalInBackground: false,

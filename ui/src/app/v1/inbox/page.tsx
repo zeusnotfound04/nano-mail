@@ -63,13 +63,13 @@ function InboxContent() {
 
   const { data: emails = [], isLoading, isError, refetch } = useEmails(decodedUsername);
 
-  const emailsWithReadStatus = emails.map(email => ({
+  const emailsWithReadStatus = emails.map(email  => ({
     ...email,
     read: isEmailRead(email.id)
   }));
 
-  const handleRefresh = () => {
-    refetch();
+  const handleRefresh = async () => {
+    await refetch();
   };
 
   useEffect(() => {
@@ -96,12 +96,24 @@ function InboxContent() {
     }
 
     const decoded = decodeQueryParam(encodedQuery);
-    setDecodedUsername(decoded);
+    
+    // Only reset if the username actually changed
+    if (decoded && decoded !== decodedUsername) {
+      setDecodedUsername(decoded);
+      setSelectedEmail(null);
+      setMobileView("list");
+      setReadEmails([]); // Clear read emails when switching inboxes
+      
+      // Update URL to remove the selected email ID
+      router.replace(`/v1/inbox?q=${encodedQuery}`, { scroll: false });
+    } else if (!decodedUsername) {
+      setDecodedUsername(decoded);
+    }
 
     if (!decoded) {
       router.push("/");
     }
-  }, [encodedQuery, router]);
+  }, [encodedQuery, router, decodedUsername]);
 
   useEffect(() => {
     if (selectedEmailId && emailsWithReadStatus.length > 0) {
