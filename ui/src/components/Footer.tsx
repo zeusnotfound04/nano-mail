@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import React, { useEffect, useState } from "react";
 
 const Footer: React.FC = () => {

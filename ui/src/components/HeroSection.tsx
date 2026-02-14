@@ -1,7 +1,7 @@
 /* eslint-disable react/no-unescaped-entities */
 
 "use client";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { useState, useCallback } from "react";
 import BlurText from "@/components/BlurText";
 import EmailInput from "@/components/EmailInput";

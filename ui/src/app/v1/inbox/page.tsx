@@ -10,7 +10,7 @@ import EmailDetail from "@/components/EmailDetail";
 import CopyEmailButton from "@/components/CopyEmailButton";
 import EmailParticleBackground from "@/components/EmailParticleBackground";
 import LoadingAnimation from "@/components/LoadingAnimation";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { useEmails, type Email } from "@/hooks/useEmails";
 
 function InboxContent() {
