@@ -162,8 +162,8 @@ export async function searchEmails(rcptQuery: string) {
             const emailBuffer = Buffer.from(email.body || '', 'utf-8');
             const parsed = await simpleParser(emailBuffer);
             
-            if (parsed.html && parsed.html !== false) {
-              htmlContent = parsed.html.toString();
+            if (parsed.html && typeof parsed.html === 'string') {
+              htmlContent = parsed.html;
             } else if (parsed.textAsHtml) {
               htmlContent = parsed.textAsHtml;
             }
