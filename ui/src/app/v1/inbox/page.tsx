@@ -1,6 +1,6 @@
 /* eslint-disable */
 "use client";
-import React, { useEffect, useState, Suspense } from "react";
+import React, { useEffect, useState, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { decodeQueryParam } from "@/lib/queryEncoding";
 import AnimatedBackground from "@/components/AnimatedBackground";
@@ -63,10 +63,14 @@ function InboxContent() {
 
   const { data: emails = [], isLoading, isError, refetch } = useEmails(decodedUsername);
 
-  const emailsWithReadStatus = emails.map(email  => ({
-    ...email,
-    read: isEmailRead(email.id)
-  }));
+  console.log('Inbox State:', { decodedUsername, emailCount: emails.length, isLoading });
+
+  const emailsWithReadStatus = useMemo(() => 
+    emails.map((email: any)  => ({
+      ...email,
+      read: isEmailRead(email.id)
+    }))
+  , [emails, readEmails]);
 
   const handleRefresh = async () => {
     await refetch();
@@ -97,28 +101,30 @@ function InboxContent() {
 
     const decoded = decodeQueryParam(encodedQuery);
     
-    // Only reset if the username actually changed
-    if (decoded && decoded !== decodedUsername) {
+    if (!decoded) {
+      router.push("/");
+      return;
+    }
+
+    // Always update if the decoded username is different from current
+    if (decoded !== decodedUsername) {
+      console.log(`Switching inbox from "${decodedUsername}" to "${decoded}"`);
       setDecodedUsername(decoded);
       setSelectedEmail(null);
       setMobileView("list");
-      setReadEmails([]); // Clear read emails when switching inboxes
+      setReadEmails([]);
       
-      // Update URL to remove the selected email ID
-      router.replace(`/v1/inbox?q=${encodedQuery}`, { scroll: false });
-    } else if (!decodedUsername) {
-      setDecodedUsername(decoded);
+      // Clean URL when switching inboxes
+      if (selectedEmailId) {
+        router.replace(`/v1/inbox?q=${encodedQuery}`, { scroll: false });
+      }
     }
-
-    if (!decoded) {
-      router.push("/");
-    }
-  }, [encodedQuery, router, decodedUsername]);
+  }, [encodedQuery, router]);
 
   useEffect(() => {
     if (selectedEmailId && emailsWithReadStatus.length > 0) {
       const foundEmail = emailsWithReadStatus.find(
-        (email) => email.id === selectedEmailId
+        (email: any) => email.id === selectedEmailId
       );
       if (foundEmail) {
         setSelectedEmail(foundEmail);
@@ -131,7 +137,7 @@ function InboxContent() {
   }, [selectedEmailId, emailsWithReadStatus]);
 
   const handleSelectEmail = (emailId: string) => {
-    const email = emailsWithReadStatus.find((e) => e.id === emailId);
+    const email = emailsWithReadStatus.find((e: any) => e.id === emailId);
     if (email) {
       setSelectedEmail(email);
       const url = `/v1/inbox?q=${encodedQuery}&id=${emailId}`;
@@ -192,6 +198,31 @@ function InboxContent() {
                   </span>
                 </div>
                 <div className="mt-2 flex items-center space-x-3">
+                  <motion.button
+                    onClick={() => router.push("/")}
+                    whileHover={{
+                      scale: 1.05,
+                      boxShadow: "0 0 8px rgba(66, 127, 57, 0.5)",
+                    }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center justify-center px-3 py-1.5 bg-black/40 hover:bg-black/60 border border-[#427F39]/30 rounded-md text-white/90 hover:text-[#427F39] transition-colors"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4 mr-1.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                    New
+                  </motion.button>
                   <motion.button
                     onClick={handleRefresh}
                     disabled={isLoading}

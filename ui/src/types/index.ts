@@ -1,10 +1,13 @@
 export interface Email {
-    id: number;
-    sender: string;
-    recipients: string[]; 
-    subject: string;
-    body: string;
-    size: number;
-    created_at: Date;
-  }
+  id: number;
+  date: Date;
+  mail_from: string;
+  rcpt_to: string[];
+  subject: string;
+  htmlContent: string;
+  textContent: string;
+  size: number;
+  read?: boolean;
+}
+
   

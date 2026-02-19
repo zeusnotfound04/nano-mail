@@ -18,13 +18,15 @@ export function useEmails(username: string) {
       if (!username) return [];
       
       const fetchedEmails = await searchEmails(username);
+      console.log(`📧 Fetched ${fetchedEmails.length} pre-parsed emails from server`);
       
+      // Emails are already parsed on server side
       return fetchedEmails.map((email) => ({
         id: String(email.id),
         from: email.mail_from || "",
-        subject: email.data?.subject || email.subject || "",
-        content: email.data?.text || "",
-        htmlContent: email.data?.text_as_html || "",
+        subject: email.subject || "",
+        content: email.textContent || "",
+        htmlContent: email.htmlContent || "",
         timestamp: new Date(email.date),
         read: false,
       }));

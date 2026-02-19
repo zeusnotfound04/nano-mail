@@ -8,9 +8,10 @@ import DecorativeParticles from "@/components/DecorativeParticles";
 interface EmailInputProps {
   username: string;
   setUsername: (username: string) => void;
+  onSubmit?: () => void;
 }
 
-export default function EmailInput({ username, setUsername }: EmailInputProps) {
+export default function EmailInput({ username, setUsername, onSubmit }: EmailInputProps) {
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [dataPulse, setDataPulse] = useState(false);
   const [pulseEffect, setPulseEffect] = useState(false);
@@ -177,6 +178,11 @@ export default function EmailInput({ username, setUsername }: EmailInputProps) {
           placeholder="username"
           onFocus={() => setIsInputFocused(true)}
           onBlur={() => setIsInputFocused(false)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && onSubmit) {
+              onSubmit();
+            }
+          }}
           className="flex-1 bg-transparent py-3 px-4 text-white placeholder-gray-500 outline-none relative z-10"
           aria-label="Enter your desired username"
         />

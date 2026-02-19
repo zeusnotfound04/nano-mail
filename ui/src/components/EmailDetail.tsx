@@ -1,9 +1,10 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { format } from "date-fns";
 import { Email } from "./EmailList";
 import { Poppins } from "next/font/google";
+import DOMPurify from 'dompurify';
 
 const poppins = Poppins({
   weight: "700",
@@ -29,6 +30,18 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ email, onBack }) => {
   }, []);
 
   useEffect(() => {
+    console.log('📧 EmailDetail: Loading email', { 
+      hasEmail: !!email, 
+      emailId: email?.id, 
+      subject: email?.subject,
+      hasHtml: !!email?.htmlContent,
+      hasText: !!email?.content,
+      htmlContentLength: email?.htmlContent?.length || 0,
+      textContentLength: email?.content?.length || 0,
+      contentPreview: email?.content?.substring(0, 100),
+      htmlPreview: email?.htmlContent?.substring(0, 100),
+    });
+    
     if (email && email.htmlContent) {
       setDisplayMode('html');
     } else {
@@ -172,7 +185,12 @@ const EmailDetail: React.FC<EmailDetailProps> = ({ email, onBack }) => {
           {email.htmlContent && displayMode === 'html' ? (
             <div
               className="text-white/90 email-html-content"
-              dangerouslySetInnerHTML={{ __html: email.htmlContent }}
+              dangerouslySetInnerHTML={{ 
+                __html: DOMPurify.sanitize(email.htmlContent, {
+                  ADD_TAGS: ['style'],
+                  ADD_ATTR: ['target', 'style'],
+                }) 
+              }}
             />
           ) : (
             <p className="text-white/90 text-xs sm:text-sm whitespace-pre-line leading-relaxed">

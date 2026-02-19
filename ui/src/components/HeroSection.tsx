@@ -13,7 +13,7 @@ export default function HeroSection() {
   const router = useRouter();
   const [username, setUsername] = useState<string>("");
   const [blurAnimationComplete, setBlurAnimationComplete] = useState(false);
-console.log(blurAnimationComplete)
+
   const handleBlurAnimationComplete = useCallback(() => {
     setBlurAnimationComplete(true);
   }, []);
@@ -55,7 +55,7 @@ console.log(blurAnimationComplete)
           </p>
           
           <div className="space-y-4 sm:space-y-6" suppressHydrationWarning>
-            <EmailInput username={username} setUsername={setUsername} />
+            <EmailInput username={username} setUsername={setUsername} onSubmit={handleCreateInbox} />
             
             <motion.div
               initial={{ opacity: 0, y: -10 }}
