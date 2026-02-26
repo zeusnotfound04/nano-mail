@@ -8,6 +8,8 @@ import EmailInput from "@/components/EmailInput";
 import CreateInboxButton from "@/components/CreateInboxButton";
 import { useRouter } from "next/navigation";
 import { encodeQueryParam } from "@/lib/queryEncoding";
+import BrandingTag from "./BrandingTag";
+import GithubStar from "./GithubStar";
 
 export default function HeroSection() {
   const router = useRouter();
@@ -34,6 +36,8 @@ export default function HeroSection() {
         className="max-w-3xl mx-auto text-center"
         suppressHydrationWarning
       >
+        <BrandingTag />
+        
         <BlurText
           text=" Fast. Private. Disposable. This is NanoMail."
           delay={280}
@@ -92,6 +96,8 @@ export default function HeroSection() {
             </motion.div>
             
             <CreateInboxButton handleCreateInbox={handleCreateInbox} />
+            
+            {/* <GithubStar /> */}
           </div>
         </motion.div>
       </motion.div>
