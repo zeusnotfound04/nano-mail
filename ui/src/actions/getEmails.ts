@@ -90,15 +90,20 @@ export async function searchEmails(rcptQuery: string) {
       return [];
     }
     
-    const fullEmail = sanitizedQuery.includes('@') 
-      ? sanitizedQuery 
-      : `${sanitizedQuery}@zeus.nanomail.live`;
-    
+    const username = sanitizedQuery.includes('@')
+      ? sanitizedQuery.split('@')[0]
+      : sanitizedQuery;
+
+    const emailVariants = [
+      `${username}@zeus.nanomail.live`,
+      `${username}@zeus.nanomail.in`,
+    ];
+
     try {
       const emails = await prisma.emails.findMany({
         where: {
           recipients: {
-            has: fullEmail, 
+            hasSome: emailVariants,
           },
         },
         select: {
