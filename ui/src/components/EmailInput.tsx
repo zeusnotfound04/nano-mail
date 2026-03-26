@@ -187,7 +187,7 @@ export default function EmailInput({ username, setUsername, onSubmit }: EmailInp
           aria-label="Enter your desired username"
         />
         <div className="bg-[#1a1a1a] py-2 sm:py-3 px-3 text-sm sm:text-base text-center text-gray-300 font-bold border-t sm:border-t-0 sm:border-l border-gray-700 relative z-10">
-          @zeus.nanomail.live
+          @zeus.nanomail.in
         </div>
       </div>
       

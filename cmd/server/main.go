@@ -25,7 +25,7 @@ func main() {
 	cfg := config.DefaultConfig()
 	cfg.Host = "0.0.0.0"
 	cfg.Port = "25"
-	cfg.Domain = "zeus.nanomail.live"
+	cfg.Domain = "zeus.nanomail.in"
 	cfg.MaxMessageSize = 20 * 1024 * 1024
 	cfg.ConnectionPerIP = 10
 	cfg.MaxRecipients = 50

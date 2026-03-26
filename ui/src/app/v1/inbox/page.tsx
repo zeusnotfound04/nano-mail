@@ -194,7 +194,7 @@ function InboxContent() {
                     <span className="text-[#00D8FF]">
                       {decodedUsername}
                     </span>
-                    @zeus.nanomail.live
+                    @zeus.nanomail.in
                   </span>
                 </div>
                 <div className="mt-2 flex items-center space-x-3">
@@ -264,7 +264,7 @@ function InboxContent() {
                     {isLoading ? "Checking..." : "Refresh"}
                   </motion.button>
                   <CopyEmailButton
-                    emailAddress={`${decodedUsername}@zeus.nanomail.live`}
+                    emailAddress={`${decodedUsername}@zeus.nanomail.in`}
                   />
                 </div>
               </div>

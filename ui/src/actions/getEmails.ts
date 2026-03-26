@@ -95,7 +95,6 @@ export async function searchEmails(rcptQuery: string) {
       : sanitizedQuery;
 
     const emailVariants = [
-      `${username}@zeus.nanomail.live`,
       `${username}@zeus.nanomail.in`,
     ];
 
