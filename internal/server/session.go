@@ -71,6 +71,23 @@ type smtpSession struct {
 	ctx        context.Context
 }
 
+// extractAddress pulls the email address out of an SMTP path argument such as
+// "<user@example.com> SIZE=4013". It returns the content between the angle
+// brackets when present, otherwise the first whitespace-delimited token, so
+// trailing ESMTP parameters (SIZE, BODY, NOTIFY, ...) are never folded into the
+// address.
+func extractAddress(s string) string {
+	if start := strings.IndexByte(s, '<'); start >= 0 {
+		if end := strings.IndexByte(s[start:], '>'); end >= 0 {
+			return strings.TrimSpace(s[start+1 : start+end])
+		}
+	}
+	if i := strings.IndexAny(s, " \t"); i >= 0 {
+		s = s[:i]
+	}
+	return strings.TrimSpace(s)
+}
+
 func (s *smtpSession) writeResponse(response string) error {
 	logger := s.server.config.Logger.With("client", s.remoteAddr)
 	logger.Debug("Sending response", "response", strings.TrimSpace(response))
@@ -138,8 +155,7 @@ func (s *smtpSession) handleMailFrom(params string) {
 		return
 	}
 
-	addr := strings.TrimSpace(params[5:])
-	addr = strings.Trim(addr, "<>")
+	addr := extractAddress(strings.TrimSpace(params[5:]))
 
 	if addr == "" {
 		s.writeResponse("501 Invalid sender address format\r\n")
@@ -179,8 +195,7 @@ func (s *smtpSession) handleRcptTo(params string) {
 		return
 	}
 
-	addr := strings.TrimSpace(params[3:])
-	addr = strings.Trim(addr, "<>")
+	addr := extractAddress(strings.TrimSpace(params[3:]))
 
 	if addr == "" {
 		s.writeResponse("501 Empty recipient address\r\n")
