@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nanomail-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nanomail
+      POSTGRES_USER: nanomail_user
+      POSTGRES_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - nanomail-net
+    # no "ports:" published — reachable only from other containers on nanomail-net
+
+  smtp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nanomail-smtp
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgresql://nanomail_user:CHANGE_ME_STRONG_PASSWORD@postgres:5432/nanomail?sslmode=disable
+    ports:
+      - "25:25"
+    networks:
+      - nanomail-net
+
+  ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    container_name: nanomail-ui
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgresql://nanomail_user:CHANGE_ME_STRONG_PASSWORD@postgres:5432/nanomail?sslmode=disable
+      NODE_ENV: production
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - nanomail-net
+
+networks:
+  nanomail-net:
+    driver: bridge
+
+volumes:
+  pgdata:
