@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.6.0",
-    "@react-spring/web": "^9.7.5",
+    "@react-spring/web": "^10.0.1",
     "@tabler/icons-react": "^3.31.0",
     "@tanstack/react-query": "^5.85.9",
     "@tanstack/react-query-devtools": "^5.85.9",
@@ -28,10 +28,7 @@
     "ogl": "^1.0.11",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-tsparticles": "^2.12.2",
-    "tailwind-merge": "^3.2.0",
-    "tsparticles": "^3.8.1",
-    "tsparticles-slim": "^2.12.0"
+    "tailwind-merge": "^3.2.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
