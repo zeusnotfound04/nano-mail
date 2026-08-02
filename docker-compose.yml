@@ -4,9 +4,9 @@ services:
     container_name: nanomail-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: nanomail
-      POSTGRES_USER: nanomail_user
-      POSTGRES_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
@@ -22,7 +22,7 @@ services:
     depends_on:
       - postgres
     environment:
-      DATABASE_URL: postgresql://nanomail_user:CHANGE_ME_STRONG_PASSWORD@postgres:5432/nanomail?sslmode=disable
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
     ports:
       - "25:25"
     networks:
@@ -37,7 +37,7 @@ services:
     depends_on:
       - postgres
     environment:
-      DATABASE_URL: postgresql://nanomail_user:CHANGE_ME_STRONG_PASSWORD@postgres:5432/nanomail?sslmode=disable
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
       NODE_ENV: production
     ports:
       - "127.0.0.1:3000:3000"
