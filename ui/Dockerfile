@@ -27,4 +27,6 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 3000
-CMD ["pnpm", "start"]
+# Run Next directly: the runner must not need corepack/pnpm (which downloads
+# from the npm registry at startup) or any network access to boot.
+CMD ["node_modules/.bin/next", "start"]
