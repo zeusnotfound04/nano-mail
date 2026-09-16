@@ -1,5 +1,6 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { motion } from "motion/react";
 import { format } from "date-fns";
 import { Email } from "./EmailList";
@@ -16,38 +17,18 @@ interface EmailDetailProps {
 }
 
 const EmailDetail: React.FC<EmailDetailProps> = ({ email, onBack }) => {
-  const [isMobile, setIsMobile] = useState(false);
-  const [displayMode, setDisplayMode] = useState<'html' | 'text'>('html');
+  const isMobile = useMediaQuery("(max-width: 767px)");
 
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  useEffect(() => {
-    console.log('📧 EmailDetail: Loading email', { 
-      hasEmail: !!email, 
-      emailId: email?.id, 
-      subject: email?.subject,
-      hasHtml: !!email?.htmlContent,
-      hasText: !!email?.content,
-      htmlContentLength: email?.htmlContent?.length || 0,
-      textContentLength: email?.content?.length || 0,
-      contentPreview: email?.content?.substring(0, 100),
-      htmlPreview: email?.htmlContent?.substring(0, 100),
-    });
-    
-    if (email && email.htmlContent) {
-      setDisplayMode('html');
-    } else {
-      setDisplayMode('text');
-    }
-  }, [email]);
+  // The user's HTML/Text choice only applies to the email it was made on;
+  // switching emails falls back to the default for that email.
+  const [modeOverride, setModeOverride] = useState<{ emailId: string; mode: 'html' | 'text' } | null>(null);
+  const displayMode: 'html' | 'text' =
+    email && modeOverride?.emailId === email.id
+      ? modeOverride.mode
+      : email?.htmlContent ? 'html' : 'text';
+  const setDisplayMode = (mode: 'html' | 'text') => {
+    if (email) setModeOverride({ emailId: email.id, mode });
+  };
 
   if (!email) {
     return (

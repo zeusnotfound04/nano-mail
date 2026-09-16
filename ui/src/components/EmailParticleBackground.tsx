@@ -1,54 +1,49 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useMemo } from "react";
+import { seededRandom } from "@/lib/seededRandom";
 import { motion } from "framer-motion";
 
 interface EmailParticleBackgroundProps {
   density?: number;
 }
 
+interface FloatingItem {
+  id: number;
+  x: number;
+  y: number;
+  size: number;
+  duration: number;
+  delay: number;
+}
+
 const EmailParticleBackground: React.FC<EmailParticleBackgroundProps> = ({ 
   density = 20
 }) => {
-  const [particles, setParticles] = useState<Array<{
-    id: number;
-    x: number;
-    y: number;
-    size: number;
-    duration: number;
-    delay: number;
-  }>>([]);
-  
-  const [envelopeSymbols, setEnvelopeSymbols] = useState<Array<{
-    id: number;
-    x: number;
-    y: number;
-    size: number;
-    duration: number;
-    delay: number;
-  }>>([]);
+  const particles = useMemo<FloatingItem[]>(
+    () =>
+      Array.from({ length: density }, (_, i) => ({
+        id: i,
+        x: seededRandom(i) * 100,
+        y: seededRandom(i + 1000) * 100,
+        size: seededRandom(i + 2000) * 2 + 1,
+        duration: seededRandom(i + 3000) * 20 + 10,
+        delay: seededRandom(i + 4000) * 10,
+      })),
+    [density],
+  );
 
-  useEffect(() => {
-    const newParticles = Array.from({ length: density }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 2 + 1,
-      duration: Math.random() * 20 + 10,
-      delay: Math.random() * 10
-    }));
-    
-    const newEnvelopeSymbols = Array.from({ length: 5 }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 20 + 10,
-      duration: Math.random() * 10 + 20,
-      delay: Math.random() * 5
-    }));
-    
-    setParticles(newParticles);
-    setEnvelopeSymbols(newEnvelopeSymbols);
-  }, [density]); 
+  const envelopeSymbols = useMemo<FloatingItem[]>(
+    () =>
+      Array.from({ length: 5 }, (_, i) => ({
+        id: i,
+        x: seededRandom(i + 5000) * 100,
+        y: seededRandom(i + 6000) * 100,
+        size: seededRandom(i + 7000) * 20 + 10,
+        duration: seededRandom(i + 8000) * 10 + 20,
+        delay: seededRandom(i + 9000) * 5,
+      })),
+    [],
+  );
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0" suppressHydrationWarning>

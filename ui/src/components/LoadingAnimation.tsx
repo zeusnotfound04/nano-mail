@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 
 interface CircleProps {
@@ -9,20 +9,14 @@ interface CircleProps {
   delay: number;
 }
 
+const circles: CircleProps[] = Array.from({ length: 5 }, (_, i) => ({
+  id: i,
+  top: `${50 + 35 * Math.sin(i * (2 * Math.PI / 5))}%`,
+  left: `${50 + 35 * Math.cos(i * (2 * Math.PI / 5))}%`,
+  delay: i * 0.2
+}));
+
 const LoadingAnimation: React.FC = () => {
-  const [circles, setCircles] = useState<CircleProps[]>([]);
-
-  useEffect(() => {
-    const generatedCircles = Array.from({ length: 5 }).map((_, i) => ({
-      id: i,
-      top: `${50 + 35 * Math.sin(i * (2 * Math.PI / 5))}%`,
-      left: `${50 + 35 * Math.cos(i * (2 * Math.PI / 5))}%`,
-      delay: i * 0.2
-    }));
-    
-    setCircles(generatedCircles);
-  }, []);
-
   return (
     <div className="w-full h-[500px] bg-black/40 backdrop-blur-md rounded-xl border border-[#00D8FF]/20 overflow-hidden shadow-lg flex flex-col items-center justify-center" suppressHydrationWarning>
       <div className="relative w-32 h-32 mb-8" suppressHydrationWarning>
@@ -75,7 +69,7 @@ const LoadingAnimation: React.FC = () => {
           suppressHydrationWarning
         />
         
-        {/* Smaller decorative circles - only rendered client-side */}
+        {/* Smaller decorative circles */}
         {circles.map((circle) => (
           <motion.div
             key={circle.id}

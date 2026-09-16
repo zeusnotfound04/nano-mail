@@ -1,6 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
 import { useMemo } from "react";
+import { seededRandom } from "@/lib/seededRandom";
 
 interface DecorativeParticlesProps {
   isInputFocused: boolean;
@@ -9,7 +10,8 @@ interface DecorativeParticlesProps {
 
 export default function DecorativeParticles({ isInputFocused, pulseEffect }: DecorativeParticlesProps) {
   const particles = useMemo(() => (
-    [...Array(4)].map((_, i) => (
+    [...Array(4)].map((_, i) => {
+      return (
       <motion.div
         key={`particle-${i}`}
         className="absolute w-1 h-1 rounded-full"
@@ -28,19 +30,20 @@ export default function DecorativeParticles({ isInputFocused, pulseEffect }: Dec
         }}
         animate={{
           opacity: (isInputFocused || pulseEffect) ? [0, 0.9, 0] : 0,
-          x: (i % 4 < 2 ? -1 : 1) * (40 + Math.random() * 60) * (i % 2 === 0 ? 1.2 : 1),
-          y: (i < 4 ? -1 : 1) * (40 + Math.random() * 60) * (i % 3 === 0 ? 1.2 : 1),
+          x: (i % 4 < 2 ? -1 : 1) * (40 + seededRandom(i) * 60) * (i % 2 === 0 ? 1.2 : 1),
+          y: (i < 4 ? -1 : 1) * (40 + seededRandom(i + 5) * 60) * (i % 3 === 0 ? 1.2 : 1),
         }}
         transition={{
-          duration: 1.5 + Math.random(),
-          delay: Math.random() * 0.4,
+          duration: 1.5 + seededRandom(i + 10),
+          delay: seededRandom(i + 20) * 0.4,
           ease: "easeOut",
           repeat: isInputFocused ? 1 : pulseEffect ? 1 : 0,
           repeatDelay: 1
         }}
         suppressHydrationWarning
       />
-    ))
+      );
+    })
   ), [isInputFocused, pulseEffect]);
 
   return <div suppressHydrationWarning>{particles}</div>;

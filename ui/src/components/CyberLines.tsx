@@ -1,6 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo } from "react";
+import { useIsClient } from "@/hooks/useIsClient";
 
 interface CyberLinesProps {
   dataPulse: boolean;
@@ -22,12 +23,7 @@ function getLineWidth(index: number): number {
 }
 
 export default function CyberLines({ dataPulse }: CyberLinesProps) {
-  // Add client-side only rendering
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useIsClient();
 
   const cyberLines = useMemo(() => (
     [...Array(6)].map((_, i) => {

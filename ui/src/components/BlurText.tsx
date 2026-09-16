@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useRef, useEffect, useState } from 'react';
+import { useIsClient } from '@/hooks/useIsClient';
 import { useSprings, animated, SpringValue } from '@react-spring/web';
 
 const AnimatedSpan = animated.span as React.FC<React.HTMLAttributes<HTMLSpanElement>>;
@@ -54,12 +55,8 @@ const BlurText: React.FC<BlurTextProps> = ({
     { filter: 'blur(0px)', opacity: 1, transform: 'translate3d(0,0,0)' },
   ];
 
-  // Use client-only rendering to avoid hydration mismatches
-  const [isClient, setIsClient] = useState(false);
-  
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  // Client-only rendering to avoid hydration mismatches
+  const isClient = useIsClient();
 
   useEffect(() => {
     // If animation is already completed, don't re-observe

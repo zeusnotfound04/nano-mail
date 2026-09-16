@@ -1,5 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
+import { seededRandom } from "@/lib/seededRandom";
 
 export default function CreateInboxButton( { handleCreateInbox }: { handleCreateInbox: () => void }) {
   return (
@@ -85,11 +86,11 @@ export default function CreateInboxButton( { handleCreateInbox }: { handleCreate
               initial={{ opacity: 0 }}
               whileHover={{
                 opacity: [0, 0.8, 0],
-                x: ["-50%", `${(i%2===0?-1:1) * (Math.random() * 70)}px`],
-                y: ["-50%", `${(i<3?-1:1) * (Math.random() * 40)}px`],
+                x: ["-50%", `${(i%2===0?-1:1) * (seededRandom(i) * 70)}px`],
+                y: ["-50%", `${(i<3?-1:1) * (seededRandom(i + 10) * 40)}px`],
               }}
               transition={{
-                duration: 1 + Math.random(),
+                duration: 1 + seededRandom(i + 20),
                 ease: "easeOut",
                 delay: i * 0.1,
               }}

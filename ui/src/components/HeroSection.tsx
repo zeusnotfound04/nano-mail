@@ -9,17 +9,10 @@ import CreateInboxButton from "@/components/CreateInboxButton";
 import { useRouter } from "next/navigation";
 import { encodeQueryParam } from "@/lib/queryEncoding";
 import BrandingTag from "./BrandingTag";
-import GithubStar from "./GithubStar";
 
 export default function HeroSection() {
   const router = useRouter();
   const [username, setUsername] = useState<string>("");
-  const [blurAnimationComplete, setBlurAnimationComplete] = useState(false);
-
-  const handleBlurAnimationComplete = useCallback(() => {
-    setBlurAnimationComplete(true);
-  }, []);
-
   const handleCreateInbox = useCallback(() => {
     if (username.trim()) {
       const encodedUsername = encodeQueryParam(username.toLowerCase());
@@ -45,7 +38,6 @@ export default function HeroSection() {
           direction="top"
           highlightWords={[{ word: "NanoMail", color: "#11ba93" }]}
           className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6"
-          onAnimationComplete={handleBlurAnimationComplete}
         />
         
         <motion.div

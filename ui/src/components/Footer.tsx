@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import React, { useEffect, useState } from "react";
+import { useIsClient } from "@/hooks/useIsClient";
 
 const Footer: React.FC = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -201,11 +202,7 @@ interface EnchancePraticleProp {
 }
 const EnhancedParticleEffect = ({ primaryColor, secondaryColor, isHovered }: EnchancePraticleProp) => {
   
-  const [mounted, setMounted] = useState(false);
-  
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useIsClient();
   
   if (!mounted) {
     return (
@@ -261,11 +258,7 @@ interface AudioBarProp {
 }
 const AudioBars = ({ primaryColor, isHovered } : AudioBarProp) => {
   
-  const [mounted, setMounted] = useState(false);
-  
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useIsClient();
   
   if (!mounted) {
     return (
