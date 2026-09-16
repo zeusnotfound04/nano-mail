@@ -26,8 +26,6 @@ func ConnectDB() (*sql.DB, error) {
 		log.Println("Error loading .env file")
 	}
 
-	fmt.Println("DB URL")
-
 	dcs := os.Getenv("DATABASE_URL")
 	if dcs == "" {
 		return nil, fmt.Errorf("DATABASE_URL environment variable is empty")
@@ -45,7 +43,6 @@ func ConnectDB() (*sql.DB, error) {
 	}
 
 	db, err := sql.Open("postgres", dcs)
-	fmt.Println("DB URL", dcs)
 	if err != nil {
 		log.Println(DATABASE_ERROR)
 		return nil, err

@@ -42,6 +42,10 @@ func main() {
 	}
 	defer db.Close()
 
+	if err := initSchema(db); err != nil {
+		log.Fatal(err)
+	}
+
 	logger.Info("Starting SMTP server....")
 	srv, err := server.StartServer(cfg, db)
 	if err != nil {
@@ -91,6 +95,7 @@ func initSchema(db *sql.DB) error {
         size BIGINT,
         created_at TIMESTAMPTZ DEFAULT NOW()
     );
+    CREATE INDEX IF NOT EXISTS emails_recipients_idx ON emails USING GIN (recipients);
     `
 	_, err := db.Exec(query)
 
@@ -98,6 +103,6 @@ func initSchema(db *sql.DB) error {
 		return fmt.Errorf("failed to initialize schema: %w", err)
 	}
 
-	fmt.Println("Schema initialized successfully!!")
+	log.Println("Schema initialized")
 	return nil
 }
