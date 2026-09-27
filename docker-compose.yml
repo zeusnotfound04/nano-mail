@@ -23,8 +23,14 @@ services:
       - postgres
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      SMTP_DOMAIN: ${SMTP_DOMAIN:-zeus.nanomail.in}
+      SMTP_ALLOWED_DOMAINS: ${SMTP_ALLOWED_DOMAINS:-}
+      RETENTION_PERIOD: ${RETENTION_PERIOD:-24h}
+      RETENTION_INTERVAL: ${RETENTION_INTERVAL:-15m}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:
       - "25:25"
+    stop_grace_period: 30s
     networks:
       - nanomail-net
 
