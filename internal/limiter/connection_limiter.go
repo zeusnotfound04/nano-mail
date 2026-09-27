@@ -2,7 +2,6 @@ package limiter
 
 import (
 	"sync"
-	"time"
 )
 
 type ConnectionLimiter interface {
@@ -11,47 +10,37 @@ type ConnectionLimiter interface {
 	Cleanup()
 }
 
-type connectionInfo struct {
-	count    int
-	lastSeen time.Time
-}
-
 type RateLimiter struct {
-	connections map[string]*connectionInfo
-	maxPerIP    int
-	mu          sync.Mutex
-	cleanupDone chan struct{}
+	mu       sync.Mutex
+	perIP    map[string]int
+	total    int
+	maxPerIP int
+	maxTotal int
 }
 
-func NewRateLimiter(maxPerIP int) *RateLimiter {
-	r := &RateLimiter{
-		connections: make(map[string]*connectionInfo),
-		maxPerIP:    maxPerIP,
-		cleanupDone: make(chan struct{}),
+func NewRateLimiter(maxPerIP int, maxTotal int) *RateLimiter {
+	return &RateLimiter{
+		perIP:    make(map[string]int),
+		maxPerIP: maxPerIP,
+		maxTotal: maxTotal,
 	}
-
-	go r.periodicCleanup()
-	return r
 }
 
 func (r *RateLimiter) Allow(ip string) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	now := time.Now()
-	info, exists := r.connections[ip]
-
-	if !exists {
-		r.connections[ip] = &connectionInfo{count: 1, lastSeen: now}
-		return true
-	}
-
-	if info.count >= r.maxPerIP {
+	if r.maxTotal > 0 && r.total >= r.maxTotal {
 		return false
 	}
 
-	info.count++
-	info.lastSeen = now
+	if r.perIP[ip] >= r.maxPerIP {
+		return false
+	}
+
+	r.perIP[ip]++
+	r.total++
+
 	return true
 }
 
@@ -59,44 +48,33 @@ func (r *RateLimiter) Release(ip string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if info, exists := r.connections[ip]; exists {
-		info.count--
-		info.lastSeen = time.Now()
+	count, exists := r.perIP[ip]
+	if !exists {
+		return
+	}
 
-		if info.count <= 0 {
-			delete(r.connections, ip)
-		}
+	if count <= 1 {
+		delete(r.perIP, ip)
+	} else {
+		r.perIP[ip] = count - 1
+	}
+
+	if r.total > 0 {
+		r.total--
 	}
 }
 
 func (r *RateLimiter) Cleanup() {
-	close(r.cleanupDone)
-}
-
-func (r *RateLimiter) periodicCleanup() {
-	ticker := time.NewTicker(5 * time.Minute)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.cleanupDone:
-			return
-		case <-ticker.C:
-			r.cleanupStaleConnections()
-		}
-	}
-}
-
-func (r *RateLimiter) cleanupStaleConnections() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	now := time.Now()
-	staleThreshold := 30 * time.Minute
+	r.perIP = make(map[string]int)
+	r.total = 0
+}
 
-	for ip, info := range r.connections {
-		if now.Sub(info.lastSeen) > staleThreshold && info.count == 0 {
-			delete(r.connections, ip)
-		}
-	}
+func (r *RateLimiter) InFlight() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	return r.total
 }

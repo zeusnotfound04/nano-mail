@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -16,37 +15,29 @@ import (
 	"github.com/zeusnotfound04/nano-mail/internal/server"
 )
 
+const shutdownTimeout = 20 * time.Second
+
 func main() {
-
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
+		Level: config.LogLevel(),
 	}))
+	slog.SetDefault(logger)
 
-	cfg := config.DefaultConfig()
-	cfg.Host = "0.0.0.0"
-	cfg.Port = "25"
-	cfg.Domain = "zeus.nanomail.in"
-	cfg.MaxMessageSize = 20 * 1024 * 1024
-	cfg.ConnectionPerIP = 10
-	cfg.MaxRecipients = 50
-
-	cfg.ReadTimeout = 30 * time.Second
-	cfg.WriteTimeout = 30 * time.Second
-	cfg.Logger = logger
-
+	cfg := config.Load()
 	cfg.Logger = logger
 
 	db, err := database.ConnectDB()
 	if err != nil {
-		log.Fatal("Failed to connect to DB:", err)
+		logger.Error("Failed to connect to database", "error", err)
+		os.Exit(1)
 	}
 	defer db.Close()
 
 	if err := initSchema(db); err != nil {
-		log.Fatal(err)
+		logger.Error("Failed to initialize schema", "error", err)
+		os.Exit(1)
 	}
 
-	logger.Info("Starting SMTP server....")
 	srv, err := server.StartServer(cfg, db)
 	if err != nil {
 		logger.Error("Failed to start server", "error", err)
@@ -54,34 +45,20 @@ func main() {
 	}
 
 	done := make(chan os.Signal, 1)
-	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGALRM)
+	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
 
-	logger.Info("Server is running",
-		"host", cfg.Host,
-		"port", cfg.Port,
-		"domain", cfg.Domain)
+	sig := <-done
+	logger.Info("Shutdown signal received", "signal", sig.String())
 
-	<-done
-	logger.Info("Shutting down server.....")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
-	go func() {
-		<-ctx.Done()
-		if ctx.Err() == context.DeadlineExceeded {
-			logger.Error("Server shutdown timed out")
-			os.Exit(1)
-		}
-	}()
-
-	if err := srv.Stop(); err != nil {
+	if err := srv.Stop(ctx); err != nil {
 		logger.Error("Error during server shutdown", "error", err)
 		os.Exit(1)
 	}
 
 	logger.Info("Server shutdown complete")
-
 }
 
 func initSchema(db *sql.DB) error {
@@ -96,13 +73,16 @@ func initSchema(db *sql.DB) error {
         created_at TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE INDEX IF NOT EXISTS emails_recipients_idx ON emails USING GIN (recipients);
+    CREATE INDEX IF NOT EXISTS emails_created_at_idx ON emails (created_at);
     `
-	_, err := db.Exec(query)
 
-	if err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if _, err := db.ExecContext(ctx, query); err != nil {
 		return fmt.Errorf("failed to initialize schema: %w", err)
 	}
 
-	log.Println("Schema initialized")
+	slog.Info("Schema initialized")
 	return nil
 }
