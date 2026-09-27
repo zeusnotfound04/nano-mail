@@ -16,6 +16,7 @@ model emails {
   size       BigInt?
   created_at DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
+  @@index([recipients], type: Gin, map: "emails_recipients_idx")
+  @@index([created_at], map: "emails_created_at_idx")
   @@map("emails")
-  @@index([recipients])
 }
